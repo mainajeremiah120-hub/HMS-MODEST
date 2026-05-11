@@ -10,8 +10,9 @@ import appointmentExpiryJob from "./src/jobs/appointmentExpiry.job.js";
 import appointmentReminderJob from "./src/jobs/appointmentReminder.job.js";
 import receptionRoutes from "./src/modules/reception/reception.routes.js";
 import clinicalRoutes from "./src/modules/clinical/clinical.routes.js";
+import labRoutes from "./src/modules/lab/lab.routes.js";
 
-dotenv.config();
+dotenv.config({ path: "./.env" });
 
 connectDB();
 appointmentExpiryJob();
@@ -30,6 +31,7 @@ app.use("/api/patients", patientRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/reception", receptionRoutes);
 app.use("/api/clinical", clinicalRoutes);
+app.use("/api/lab", labRoutes);
 
 // AUTH ROUTES
 app.use("/api/auth", authRoutes);

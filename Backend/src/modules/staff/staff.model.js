@@ -14,7 +14,7 @@ const staffSchema = new mongoose.Schema(
     role: Object.assign({
       type: String,
       required: true
-    }, { enum: ["admin", "doctor", "nurse", "receptionist"] }),
+    }, { enum: ["admin", "doctor", "nurse", "receptionist", "lab"] }),
     department: {
       type: String,
       required: true,

@@ -13,7 +13,7 @@ import {
 
 const router = express.Router();
 
-const labAccess = authorizeRoles("admin", "nurse", "doctor");
+const labAccess = authorizeRoles("admin", "nurse","doctor", "lab");
 
 // Get all pending/processing requests
 router.get("/requests", protect, labAccess, getAllLabRequests);
