@@ -54,11 +54,21 @@ const labRequestSchema = new mongoose.Schema(
       enum: ["pending", "processing", "completed", "cancelled"],
       default: "pending",
     },
-    result: {
+    results: [
+      {
+        parameter: String,
+        value: String,
+        unit: String,
+        referenceRange: String,
+        flag: String,
+        loincCode: String
+      }
+    ],
+    interpretation: {
       type: String,
       default: null,
     },
-    resultNotes: {
+    labNotes: {
       type: String,
       default: null,
     },
