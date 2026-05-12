@@ -7,6 +7,7 @@ import Patients from './pages/Patients'
 import Appointments from './pages/Appointments'
 import Reception from './pages/Reception'
 import Clinical from './pages/Clinical'
+import Lab from './pages/Lab'
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/reception" element={<Reception />} />
         <Route path="/clinical" element={<Clinical />} />
+        <Route path="/lab" element={<Lab />} /> 
       </Route>
     </Routes>
   )

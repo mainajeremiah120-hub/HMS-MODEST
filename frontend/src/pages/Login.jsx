@@ -28,6 +28,7 @@ function Login() {
     else if (role === "receptionist") navigate("/reception");
     else if (role === "nurse") navigate("/ward");
     else if (role === "pharmacist") navigate("/pharmacy");
+    else if (role === "lab") navigate("/lab");
     else navigate("/dashboard");
 
   } catch (err) {

@@ -6,6 +6,7 @@ const adminLinks = [
   { path: "/patients", label: "Patients", icon: "🏥" },
   { path: "/appointments", label: "Appointments", icon: "📅" },
   { path: "/reception", label: "Reception", icon: "🏨" },
+  { path: "/lab", label: "Laboratory", icon: "🧪" },
 ];
 
 const receptionLinks = [
@@ -27,12 +28,17 @@ const pharmacyLinks = [
   { path: "/pharmacy", label: "Pharmacy", icon: "💊" },
 ];
 
+const labLinks = [
+  { path: "/lab", label: "Laboratory", icon: "🧪" },
+];
+
 const roleLinks = {
   admin: adminLinks,
   receptionist: receptionLinks,
   doctor: doctorLinks,
   nurse: nurseLinks,
   pharmacist: pharmacyLinks,
+  lab: labLinks,
 };
 
 function Sidebar() {
