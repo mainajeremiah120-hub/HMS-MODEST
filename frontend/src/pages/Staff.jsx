@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import API from "../api/axios";
+import Lab from "./lab";
 
 function Staff() {
   const [staffList, setStaffList] = useState([]);
@@ -84,11 +85,12 @@ function Staff() {
   };
 
   const roleColors = {
-    admin: "bg-red-100 text-red-700",
-    doctor: "bg-blue-100 text-blue-700",
-    nurse: "bg-green-100 text-green-700",
-    receptionist: "bg-yellow-100 text-yellow-700",
-  };
+  admin: "bg-red-100 text-red-700",
+  doctor: "bg-blue-100 text-blue-700",
+  nurse: "bg-green-100 text-green-700",
+  receptionist: "bg-yellow-100 text-yellow-700",
+  lab: "bg-purple-100 text-purple-900",
+};
 
   return (
     <div>
@@ -208,6 +210,7 @@ function Staff() {
                   <option value="doctor">Doctor</option>
                   <option value="nurse">Nurse</option>
                   <option value="receptionist">Receptionist</option>
+                  <option value="lab">Lab</option>
                 </select>
               </div>
 
