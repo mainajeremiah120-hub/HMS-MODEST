@@ -15,6 +15,7 @@ export const createStaff = async (req, res) => {
 
     // Create user account linked to staff
     await User.create({
+      name: staff.fullName,
       fullName: staff.fullName,
       email: staff.email,
       password: hashedPassword,
