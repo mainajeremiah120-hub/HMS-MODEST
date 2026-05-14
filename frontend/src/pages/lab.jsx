@@ -580,28 +580,35 @@ function LabReportModal({ request, onClose }) {
           )}
 
           {/* Results Table */}
-          <table className="w-full text-sm mb-6 border border-gray-200">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-2 text-left border border-gray-200">Parameter</th>
-                <th className="px-4 py-2 text-left border border-gray-200">Value</th>
-                <th className="px-4 py-2 text-left border border-gray-200">Unit</th>
-                <th className="px-4 py-2 text-left border border-gray-200">Reference Range</th>
-                <th className="px-4 py-2 text-left border border-gray-200">Flag</th>
-              </tr>
-            </thead>
-            <tbody>
-              {request.results?.map((r, index) => (
-                <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                  <td className="px-4 py-2 border border-gray-200 font-medium">{r.parameter}</td>
-                  <td className="px-4 py-2 border border-gray-200">{r.value || "—"}</td>
-                  <td className="px-4 py-2 border border-gray-200">{r.unit || "—"}</td>
-                  <td className="px-4 py-2 border border-gray-200">{r.referenceRange || "—"}</td>
-                  <td className={`px-4 py-2 border border-gray-200 ${flagColors[r.flag]}`}>{r.flag || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+       {/* Results Table */}
+{request.results && request.results.length > 0 ? (
+  <table className="w-full text-sm mb-6 border border-gray-200">
+    <thead className="bg-gray-100">
+      <tr>
+        <th className="px-4 py-2 text-left border border-gray-200">Parameter</th>
+        <th className="px-4 py-2 text-left border border-gray-200">Value</th>
+        <th className="px-4 py-2 text-left border border-gray-200">Unit</th>
+        <th className="px-4 py-2 text-left border border-gray-200">Reference Range</th>
+        <th className="px-4 py-2 text-left border border-gray-200">Flag</th>
+      </tr>
+    </thead>
+    <tbody>
+      {request.results.map((r, index) => (
+        <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+          <td className="px-4 py-2 border border-gray-200 font-medium">{r.parameter}</td>
+          <td className="px-4 py-2 border border-gray-200">{r.value || "—"}</td>
+          <td className="px-4 py-2 border border-gray-200">{r.unit || "—"}</td>
+          <td className="px-4 py-2 border border-gray-200">{r.referenceRange || "—"}</td>
+          <td className={`px-4 py-2 border border-gray-200 ${flagColors[r.flag]}`}>{r.flag || "—"}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+) : (
+  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 text-center text-yellow-700 text-sm">
+    ⚠️ No results entered for this test — this was processed with the old system.
+  </div>
+)}
 
           {/* Interpretation */}
           {request.interpretation && (
@@ -677,16 +684,17 @@ function Lab() {
 
 const handleViewReport = async (request) => {
   try {
-    // This calls your backend to get the document with the 'results' array included
     const res = await API.get(`/lab/requests/${request._id}`);
-    setSelectedRequest(res.data); 
+    
+    // Extract the specific labRequest object from the response
+    setSelectedRequest(res.data.labRequest); 
+    
     setShowReportModal(true);
   } catch (err) {
     console.error("Error fetching report:", err);
     alert("Could not load results. Check backend console.");
   }
 };
-
   const handleSave = () => {
     setRefreshKey((k) => k + 1);
     setActiveTab("completed");
