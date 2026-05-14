@@ -125,13 +125,10 @@ export const uploadLabResult = async (req, res) => {
   }
 };
 
-// @desc    Get all completed lab requests
-// @route   GET /api/lab/requests/completed
-// @access  Lab Technician, Admin, Doctor
 export const getCompletedLabRequests = async (req, res) => {
   try {
     const labRequests = await LabRequest.find({ status: "completed" })
-      .populate("patient", "fullName phone gender")
+      .populate("patient", "fullName phone gender bloodGroup dateOfBirth") 
       .populate("doctor", "fullName department")
       .populate("processedBy", "fullName")
       .sort({ resultUploadedAt: -1 });
