@@ -11,6 +11,7 @@ import appointmentReminderJob from "./src/jobs/appointmentReminder.job.js";
 import receptionRoutes from "./src/modules/reception/reception.routes.js";
 import clinicalRoutes from "./src/modules/clinical/clinical.routes.js";
 import labRoutes from "./src/modules/lab/lab.routes.js";
+import pharmacyRoutes from './src/modules/pharmacy/pharmacy.route.js';
 
 dotenv.config({ path: "./.env" });
 
@@ -32,7 +33,7 @@ app.use("/api/appointments", appointmentRoutes);
 app.use("/api/reception", receptionRoutes);
 app.use("/api/clinical", clinicalRoutes);
 app.use("/api/lab", labRoutes);
-
+app.use("/api/v1/pharmacy", pharmacyRoutes);
 // AUTH ROUTES
 app.use("/api/auth", authRoutes);
 
