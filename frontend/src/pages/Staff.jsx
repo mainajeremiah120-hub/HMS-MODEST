@@ -90,6 +90,7 @@ function Staff() {
   nurse: "bg-green-100 text-green-700",
   receptionist: "bg-yellow-100 text-yellow-700",
   lab: "bg-purple-100 text-purple-900",
+  pharmacist: "bg-pink-100 text-pink-700",
 };
 
   return (
@@ -211,6 +212,7 @@ function Staff() {
                   <option value="nurse">Nurse</option>
                   <option value="receptionist">Receptionist</option>
                   <option value="lab">Lab</option>
+                  <option value="pharmacist">Pharmacist</option>
                 </select>
               </div>
 

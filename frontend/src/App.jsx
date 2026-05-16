@@ -8,6 +8,7 @@ import Appointments from './pages/Appointments'
 import Reception from './pages/Reception'
 import Clinical from './pages/Clinical'
 import Lab from './pages/Lab'
+import Pharmacy from './pages/Pharmacy'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/reception" element={<Reception />} />
         <Route path="/clinical" element={<Clinical />} />
         <Route path="/lab" element={<Lab />} /> 
+        <Route path="/pharmacy" element={<Pharmacy />} />
       </Route>
     </Routes>
   )

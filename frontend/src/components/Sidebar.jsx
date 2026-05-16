@@ -7,6 +7,7 @@ const adminLinks = [
   { path: "/appointments", label: "Appointments", icon: "📅" },
   { path: "/reception", label: "Reception", icon: "🏨" },
   { path: "/lab", label: "Laboratory", icon: "🧪" },
+  { path: "/pharmacy", label: "Pharmacy", icon: "💊" },
 ];
 
 const receptionLinks = [
