@@ -5,9 +5,11 @@ const adminLinks = [
   { path: "/staff", label: "Staff", icon: "👨‍⚕️" },
   { path: "/patients", label: "Patients", icon: "🏥" },
   { path: "/appointments", label: "Appointments", icon: "📅" },
+  { path: "/clinical", label: "Clinical", icon: "🩺" },
   { path: "/reception", label: "Reception", icon: "🏨" },
   { path: "/lab", label: "Laboratory", icon: "🧪" },
   { path: "/pharmacy", label: "Pharmacy", icon: "💊" },
+
 ];
 
 const receptionLinks = [
