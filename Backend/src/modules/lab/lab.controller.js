@@ -175,3 +175,21 @@ export const cancelLabRequest = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+// @desc    Delete lab request
+// @route   DELETE /api/lab/requests/:id
+// @access  Admin, Lab tech
+export const deleteLabRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Replace LabRequest with your exact Mongoose model variable name for labs
+    const deletedRequest = await LabRequest.findByIdAndDelete(id); 
+
+    if (!deletedRequest) {
+      return res.status(404).json({ success: false, message: "Laboratory record not found." });
+    }
+    return res.status(200).json({ success: true, message: "Laboratory record successfully deleted." });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};

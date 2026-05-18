@@ -9,6 +9,7 @@ import {
   getCompletedLabRequests,
   getPatientLabHistory,
   cancelLabRequest,
+  deleteLabRequest
 } from "./lab.controller.js";
 
 const router = express.Router();
@@ -39,4 +40,6 @@ router.put("/requests/:id/cancel", protect, labAccess, cancelLabRequest);
 // Patient lab history
 router.get("/patients/:patientId", protect, labAccess, getPatientLabHistory);
 
+//delete request
+router.delete("/requests/:id", protect, labAccess, deleteLabRequest);
 export default router;
