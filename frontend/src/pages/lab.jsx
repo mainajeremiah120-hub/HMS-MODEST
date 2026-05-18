@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import API from "../api/axios";
 
 // ==================== PENDING TAB ====================
-function PendingTab({ onProcess }) {
+function PendingTab({ onProcess, onDelete, refreshKey }) { // ✅ Added refreshKey prop
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -17,7 +17,10 @@ function PendingTab({ onProcess }) {
     }
   };
 
-  useEffect(() => { fetchRequests(); }, []);
+  // ✅ Automatically re-fetch data whenever refreshKey changes
+  useEffect(() => { 
+    fetchRequests(); 
+  }, [refreshKey]);
 
   const urgencyColors = {
     routine: "bg-green-100 text-green-700",
@@ -44,6 +47,7 @@ function PendingTab({ onProcess }) {
                 <th className="px-6 py-3 text-left">Urgency</th>
                 <th className="px-6 py-3 text-left">Date</th>
                 <th className="px-6 py-3 text-left">Actions</th>
+                <th className="px-6 py-3 text-left">Delete</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -67,8 +71,20 @@ function PendingTab({ onProcess }) {
                       Process
                     </button>
                   </td>
-                </tr>
-              ))}
+                  {(user?.role === 'admin' || user?.role === 'pharmacist') && (
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => onDelete(r._id, r.patient?.fullName)} // ✅ simplified parameter footprint
+                      className="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                   )}
+                  
+                </tr> // <-- This must be OUTSIDE the condition
+              ))}   
+               
             </tbody>
           </table>
         )}
@@ -78,7 +94,7 @@ function PendingTab({ onProcess }) {
 }
 
 // ==================== PROCESSING TAB ====================
-function ProcessingTab({ onEnterResults }) {
+function ProcessingTab({ onEnterResults, refreshKey }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -93,7 +109,7 @@ function ProcessingTab({ onEnterResults }) {
     }
   };
 
-  useEffect(() => { fetchRequests(); }, []);
+  useEffect(() => { fetchRequests(); }, [refreshKey]);
 
   return (
     <div>
@@ -140,7 +156,7 @@ function ProcessingTab({ onEnterResults }) {
 }
 
 // ==================== COMPLETED TAB ====================
-function CompletedTab({ onViewReport }) {
+function CompletedTab({ onViewReport, onDelete, refreshKey }) { // ✅ Added refreshKey prop
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -155,7 +171,9 @@ function CompletedTab({ onViewReport }) {
     }
   };
 
-  useEffect(() => { fetchRequests(); }, []);
+  useEffect(() => { 
+    fetchRequests(); 
+  }, [refreshKey]); // ✅ list as safe trigger dependency
 
   return (
     <div>
@@ -175,6 +193,7 @@ function CompletedTab({ onViewReport }) {
                 <th className="px-6 py-3 text-left">Doctor</th>
                 <th className="px-6 py-3 text-left">Resulted</th>
                 <th className="px-6 py-3 text-left">Actions</th>
+                <th className="px-6 py-3 text-left">Delete</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -193,6 +212,14 @@ function CompletedTab({ onViewReport }) {
                       className="bg-purple-600 text-white px-3 py-1 rounded-lg text-xs hover:bg-purple-700 transition"
                     >
                       View Report
+                    </button>
+                  </td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => onDelete(r._id, r.patient?.fullName)} // ✅ simplified footprint
+                      className="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition"
+                    >
+                      Delete
                     </button>
                   </td>
                 </tr>
@@ -251,7 +278,6 @@ function PatientHistoryTab({ onViewReport }) {
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-700 mb-6">Patient Lab History</h2>
-
       <div className="flex gap-3 mb-6 relative">
         <input
           type="text"
@@ -359,7 +385,6 @@ function ResultEntryModal({ request, onClose, onSave }) {
   const handleValueChange = (index, value) => {
     const updated = [...results];
     updated[index].value = value;
-    // Auto calculate flag
     updated[index].flag = calculateFlag(value, updated[index].referenceRange);
     setResults(updated);
   };
@@ -413,7 +438,6 @@ function ResultEntryModal({ request, onClose, onSave }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto">
-        {/* Header */}
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-800">Enter Lab Results</h2>
           <p className="text-sm text-gray-500 mt-1">
@@ -421,7 +445,6 @@ function ResultEntryModal({ request, onClose, onSave }) {
           </p>
         </div>
 
-        {/* Results Table */}
         <div className="p-6">
           <table className="w-full text-sm mb-6">
             <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
@@ -468,7 +491,6 @@ function ResultEntryModal({ request, onClose, onSave }) {
             </tbody>
           </table>
 
-          {/* Interpretation */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Interpretation</label>
             <textarea
@@ -529,7 +551,6 @@ function LabReportModal({ request, onClose }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-screen overflow-y-auto">
-        {/* Print Button - hidden when printing */}
         <div className="flex justify-between items-center p-4 border-b no-print">
           <h2 className="text-lg font-bold text-gray-800">Lab Report</h2>
           <div className="flex gap-2">
@@ -542,16 +563,13 @@ function LabReportModal({ request, onClose }) {
           </div>
         </div>
 
-        {/* Report Content */}
         <div className="print-area p-8">
-          {/* Hospital Header */}
           <div className="text-center border-b pb-6 mb-6">
             <h1 className="text-2xl font-bold text-gray-800">Hospital Management System</h1>
             <p className="text-gray-500">Laboratory Department</p>
             <h2 className="text-lg font-semibold text-blue-700 mt-2">Laboratory Report</h2>
           </div>
 
-          {/* Patient & Test Info */}
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <h3 className="font-semibold text-gray-700 mb-2">Patient Information</h3>
@@ -571,7 +589,6 @@ function LabReportModal({ request, onClose }) {
             </div>
           </div>
 
-          {/* Clinical Notes */}
           {request.clinicalNotes && (
             <div className="mb-4 bg-gray-50 rounded-lg p-3">
               <p className="text-sm font-medium text-gray-700">Clinical Notes from Doctor:</p>
@@ -579,38 +596,35 @@ function LabReportModal({ request, onClose }) {
             </div>
           )}
 
-          {/* Results Table */}
-       {/* Results Table */}
-{request.results && request.results.length > 0 ? (
-  <table className="w-full text-sm mb-6 border border-gray-200">
-    <thead className="bg-gray-100">
-      <tr>
-        <th className="px-4 py-2 text-left border border-gray-200">Parameter</th>
-        <th className="px-4 py-2 text-left border border-gray-200">Value</th>
-        <th className="px-4 py-2 text-left border border-gray-200">Unit</th>
-        <th className="px-4 py-2 text-left border border-gray-200">Reference Range</th>
-        <th className="px-4 py-2 text-left border border-gray-200">Flag</th>
-      </tr>
-    </thead>
-    <tbody>
-      {request.results.map((r, index) => (
-        <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-          <td className="px-4 py-2 border border-gray-200 font-medium">{r.parameter}</td>
-          <td className="px-4 py-2 border border-gray-200">{r.value || "—"}</td>
-          <td className="px-4 py-2 border border-gray-200">{r.unit || "—"}</td>
-          <td className="px-4 py-2 border border-gray-200">{r.referenceRange || "—"}</td>
-          <td className={`px-4 py-2 border border-gray-200 ${flagColors[r.flag]}`}>{r.flag || "—"}</td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-) : (
-  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 text-center text-yellow-700 text-sm">
-    ⚠️ No results entered for this test — this was processed with the old system.
-  </div>
-)}
+          {request.results && request.results.length > 0 ? (
+            <table className="w-full text-sm mb-6 border border-gray-200">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-2 text-left border border-gray-200">Parameter</th>
+                  <th className="px-4 py-2 text-left border border-gray-200">Value</th>
+                  <th className="px-4 py-2 text-left border border-gray-200">Unit</th>
+                  <th className="px-4 py-2 text-left border border-gray-200">Reference Range</th>
+                  <th className="px-4 py-2 text-left border border-gray-200">Flag</th>
+                </tr>
+              </thead>
+              <tbody>
+                {request.results.map((r, index) => (
+                  <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                    <td className="px-4 py-2 border border-gray-200 font-medium">{r.parameter}</td>
+                    <td className="px-4 py-2 border border-gray-200">{r.value || "—"}</td>
+                    <td className="px-4 py-2 border border-gray-200">{r.unit || "—"}</td>
+                    <td className="px-4 py-2 border border-gray-200">{r.referenceRange || "—"}</td>
+                    <td className={`px-4 py-2 border border-gray-200 ${flagColors[r.flag]}`}>{r.flag || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 text-center text-yellow-700 text-sm">
+              ⚠️ No results entered for this test — this was processed with the old system.
+            </div>
+          )}
 
-          {/* Interpretation */}
           {request.interpretation && (
             <div className="mb-4">
               <h3 className="font-semibold text-gray-700 mb-1">Interpretation</h3>
@@ -618,7 +632,6 @@ function LabReportModal({ request, onClose }) {
             </div>
           )}
 
-          {/* Lab Notes */}
           {request.labNotes && (
             <div className="mb-6">
               <h3 className="font-semibold text-gray-700 mb-1">Lab Notes</h3>
@@ -626,7 +639,6 @@ function LabReportModal({ request, onClose }) {
             </div>
           )}
 
-          {/* Signature */}
           <div className="grid grid-cols-2 gap-6 mt-8 pt-6 border-t">
             <div>
               <p className="text-sm text-gray-600">Lab Technician Signature:</p>
@@ -640,7 +652,6 @@ function LabReportModal({ request, onClose }) {
             </div>
           </div>
 
-          {/* Footer */}
           <div className="text-center mt-6 pt-4 border-t text-xs text-gray-400">
             <p>Generated by HMS — Hospital Management System</p>
             <p>Printed on: {new Date().toLocaleString()}</p>
@@ -681,20 +692,31 @@ function Lab() {
     setShowResultModal(true);
   };
 
+  const handleViewReport = async (request) => {
+    try {
+      const res = await API.get(`/lab/requests/${request._id}`);
+      setSelectedRequest(res.data.labRequest); 
+      setShowReportModal(true);
+    } catch (err) {
+      console.error("Error fetching report:", err);
+      alert("Could not load results. Check backend console.");
+    }
+  };
 
-const handleViewReport = async (request) => {
-  try {
-    const res = await API.get(`/lab/requests/${request._id}`);
-    
-    // Extract the specific labRequest object from the response
-    setSelectedRequest(res.data.labRequest); 
-    
-    setShowReportModal(true);
-  } catch (err) {
-    console.error("Error fetching report:", err);
-    alert("Could not load results. Check backend console.");
-  }
-};
+  // ✅ Revised clean parent delete logic 
+  const handleDeleteLabRequest = async (id, patientName) => {
+    if (window.confirm(`Are you sure you want to permanently delete the lab request for ${patientName || "this patient"}?`)) {
+      try {
+        await API.delete(`/lab/requests/${id}`);
+        alert("Lab record successfully deleted.");
+        setRefreshKey((k) => k + 1); // ✅ Simply update state key to instantly trigger component re-fetch safely
+      } catch (err) {
+        console.error(err);
+        alert("Deletion failed: " + (err.response?.data?.message || err.message));
+      }
+    }
+  };
+
   const handleSave = () => {
     setRefreshKey((k) => k + 1);
     setActiveTab("completed");
@@ -720,10 +742,31 @@ const handleViewReport = async (request) => {
       </div>
 
       {/* Tab Content */}
-      {activeTab === "pending" && <PendingTab key={`pending-${refreshKey}`} onProcess={handleProcess} />}
-      {activeTab === "processing" && <ProcessingTab key={`processing-${refreshKey}`} onEnterResults={handleEnterResults} />}
-      {activeTab === "completed" && <CompletedTab key={`completed-${refreshKey}`} onViewReport={handleViewReport} />}
-      {activeTab === "history" && <PatientHistoryTab onViewReport={handleViewReport} />}
+      {activeTab === "pending" && (
+        <PendingTab 
+          refreshKey={refreshKey} // ✅ Controlled clean updates
+          onProcess={handleProcess} 
+          onDelete={handleDeleteLabRequest} 
+        />
+      )}
+      {activeTab === "processing" && (
+        <ProcessingTab 
+          refreshKey={refreshKey}
+          onEnterResults={handleEnterResults} 
+        />
+      )}
+      {activeTab === "completed" && (
+        <CompletedTab 
+          refreshKey={refreshKey} // ✅ Controlled clean updates
+          onViewReport={handleViewReport} 
+          onDelete={handleDeleteLabRequest} 
+        />
+      )}
+      {activeTab === "history" && (
+        <PatientHistoryTab 
+          onViewReport={handleViewReport} 
+        />
+      )}
 
       {/* Result Entry Modal */}
       {showResultModal && selectedRequest && (
