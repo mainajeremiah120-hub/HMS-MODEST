@@ -154,6 +154,20 @@ function PrescriptionQueueTab() {
     }
   };
 
+  // ✅ NEW: Handles direct removal from queue
+  const handleCancelRequest = async (prescriptionId, patientName) => {
+    if (window.confirm(`Are you sure you want to completely remove the prescription for ${patientName}?`)) {
+      try {
+        await API.delete(`/pharmacy/requests/${prescriptionId}`);
+        alert("Prescription order removed successfully.");
+        fetchQueue(); // Reload queue matching current db records
+      } catch (err) {
+        console.error("Failed to delete request:", err);
+        alert("Delete failed: " + (err.response?.data?.message || err.message));
+      }
+    }
+  };
+
   if (error) {
     return (
       <div className="p-6 text-center bg-red-50 border border-red-200 rounded-xl text-red-700">
@@ -188,31 +202,43 @@ function PrescriptionQueueTab() {
                 <th className="px-6 py-3">Patient</th>
                 <th className="px-6 py-3">Medications</th>
                 <th className="px-6 py-3">Date Issued</th>
-                <th className="px-6 py-3">Action</th>
+                <th className="px-6 py-3 text-center">Action Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {safePrescriptions.map((p) => (
-                <tr key={p?._id || Math.random()} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium">{p?.patient?.fullName || "Walk-in Patient"}</td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {Array.isArray(p?.medications) 
-                      ? p.medications.map(m => `${m?.drugName || m?.medicine || "Unknown Medicine"} (${m?.dosage || "N/A"}) x${m?.quantity || 1}`).join(", ")
-                      : "No medications listed"}
-                  </td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {p?.createdAt ? new Date(p.createdAt).toLocaleDateString() : "Today"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <button 
-                      onClick={() => handleDispense(p?._id)}
-                      className="bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 transition"
-                    >
-                      Dispense
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {safePrescriptions.map((p) => {
+                const patientName = p?.patient?.fullName || "Walk-in Patient";
+                return (
+                  <tr key={p?._id || Math.random()} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 font-medium">{patientName}</td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {Array.isArray(p?.medications) 
+                        ? p.medications.map(m => `${m?.drugName || m?.medicine || "Unknown Medicine"} (${m?.dosage || "N/A"}) x${m?.quantity || 1}`).join(", ")
+                        : "No medications listed"}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">
+                      {p?.createdAt ? new Date(p.createdAt).toLocaleDateString() : "Today"}
+                    </td>
+                    <td className="px-6 py-4 flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => handleDispense(p?._id)}
+                        className="bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 transition"
+                      >
+                        Dispense
+                      </button>
+                      
+                      {/* ✅ NEW: Cancel / Delete Queue Button */}
+                      <button 
+                        onClick={() => handleCancelRequest(p?._id, patientName)}
+                        className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition"
+                        title="Cancel Order"
+                      >
+                        Remove
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

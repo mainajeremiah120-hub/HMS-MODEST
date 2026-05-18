@@ -12,7 +12,8 @@ import {
     getCompletedPharmacyRequests,
     getPatientMedicationHistory,
     deleteInventoryItem,
-    addInventoryItem
+    addInventoryItem,
+    deletePharmacyRequest
 } from './pharmacy.controller.js'; // 🔗 Clean relative import file lookups
 
 // Core Request & Stock Creations
@@ -33,5 +34,6 @@ router.put('/requests/:id/cancel', cancelPharmacyRequest);
 
 // Stock Deletions
 router.delete('/inventory/:id', deleteInventoryItem);
+router.delete("/requests/:id", deletePharmacyRequest);
 
 export default router;

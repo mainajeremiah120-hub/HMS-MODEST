@@ -205,3 +205,30 @@ export const dispenseMedication = async (req, res) => {
         return res.status(500).json({ message: "Dispensing failed: " + error.message });
     }
 };
+export const deletePharmacyRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // ✅ FIXED: Changed 'Prescription' to 'PharmacyRequest' to match your line 1 import name
+    const deletedRequest = await PharmacyRequest.findByIdAndDelete(id); 
+
+    if (!deletedRequest) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Prescription order not found inside queue memory." 
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Prescription successfully removed from queue." 
+    });
+  } catch (err) {
+    console.error("Error executing queue removal logic:", err);
+    return res.status(500).json({ 
+      success: false, 
+      error: "Internal server error during record deletion", 
+      details: err.message 
+    });
+  }
+};
