@@ -1,9 +1,6 @@
 import express from 'express';
-import { addInventoryItem } from './pharmacy.controller.js';
-
 const router = express.Router();
 
-// Import the correct names from your controller
 import { 
     createPharmacyRequest,
     getPharmacyRequestsByStatus, 
@@ -13,22 +10,28 @@ import {
     getInventory,
     cancelPharmacyRequest,
     getCompletedPharmacyRequests,
-    getPatientMedicationHistory
-} from './pharmacy.controller.js';
+    getPatientMedicationHistory,
+    deleteInventoryItem,
+    addInventoryItem
+} from './pharmacy.controller.js'; // 🔗 Clean relative import file lookups
 
-// Define the routes
+// Core Request & Stock Creations
 router.post('/requests', createPharmacyRequest);
 router.post('/inventory', addInventoryItem);
 
-
-router.get('/requests', getPharmacyRequestsByStatus); // This replaces getAllPharmacyRequests
+// Retrieval Queries
+router.get('/requests', getPharmacyRequestsByStatus); 
 router.get('/requests/completed', getCompletedPharmacyRequests);
 router.get('/requests/:id', getPharmacyRequestById);
 router.get('/patients/:patientId', getPatientMedicationHistory);
-router.get("/inventory", getInventory);
+router.get('/inventory', getInventory);
 
+// Data Modification Pipelines
 router.put('/requests/:id/process', prepareForDispensing);
-router.put('/requests/:id/dispense', dispenseMedication);
+router.put('/requests/:id/dispense', dispenseMedication); 
 router.put('/requests/:id/cancel', cancelPharmacyRequest);
+
+// Stock Deletions
+router.delete('/inventory/:id', deleteInventoryItem);
 
 export default router;

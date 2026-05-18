@@ -1,59 +1,57 @@
 import mongoose from 'mongoose';
 
-const batchSchema = new mongoose.Schema({
+const BatchSchema = new mongoose.Schema({
     batchNumber: { 
         type: String, 
-        required: true 
-    },
-    expiryDate: { 
-        type: Date, 
         required: true 
     },
     quantity: { 
         type: Number, 
         required: true, 
-        min: 0 
+        default: 0 
+    },
+    expiryDate: { 
+        type: Date, 
+        required: true 
     },
     sellingPrice: { 
         type: Number, 
-        required: true 
+        required: true, 
+        default: 0 
     }
-});
+}, { _id: true });
 
-const inventorySchema = new mongoose.Schema({
+const InventorySchema = new mongoose.Schema({
     itemName: { 
         type: String, 
         required: true, 
-        unique: true, 
+        unique: true,
         trim: true 
     },
     itemType: { 
         type: String, 
-        required: true 
+        enum: ['medicine', 'supply', 'equipment'], 
+        default: 'medicine' 
+    },
+    sellingPrice: { 
+        type: Number, 
+        required: true, 
+        default: 0 
+    },
+    reorderLevel: { 
+        type: Number, 
+        default: 10 
     },
     totalStock: { 
         type: Number, 
         default: 0 
     },
-    batches: [batchSchema], // Array of batches for FEFO sorting
-    reorderLevel: { 
-        type: Number, 
-        default: 10 
-    }
+    batches: [BatchSchema]
 }, { timestamps: true });
 
-// Middleware to keep totalStock updated automatically
-inventorySchema.pre('save', function() {
-  // Check if batches exist and have length
-  if (this.batches && this.batches.length > 0) {
-    this.totalStock = this.batches.reduce((total, batch) => {
-      return total + (Number(batch.quantity) || 0);
-    }, 0);
-  } else {
-    this.totalStock = 0;
-  }
+// ✅ FIXED: Removed 'next' to prevent the Mongoose middleware signature runtime crash.
+InventorySchema.pre('save', function() {
+    this.totalStock = this.batches.reduce((sum, batch) => sum + (parseInt(batch.quantity, 10) || 0), 0);
 });
 
-const Inventory = mongoose.model('Inventory', inventorySchema);
-
-export default Inventory;
+export default mongoose.model('Inventory', InventorySchema);

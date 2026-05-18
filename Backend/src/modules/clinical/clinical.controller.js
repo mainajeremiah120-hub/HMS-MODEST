@@ -9,6 +9,8 @@ import Prescription from "./prescription.model.js";
 import LabRequest from "./labRequest.model.js";
 import RadiologyRequest from "./radiologyRequest.model.js";
 import WardRequest from "./wardRequest.model.js";
+// 💊 Import the Pharmacy Request schema to link departments together!
+import PharmacyRequest from "../pharmacy/pharmacy.model.js"; 
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
 console.log("Gemini Key Status:", geminiApiKey ? "Loaded" : "MISSING");
@@ -18,6 +20,7 @@ if (!geminiApiKey) {
 }
 
 const genAI = new GoogleGenerativeAI(geminiApiKey || "");
+
 // ==================== APPOINTMENTS ====================
 
 // @desc    Get doctor's today appointments
@@ -117,7 +120,6 @@ export const suggestDiagnosis = async (req, res) => {
   try {
     const { symptoms, patientAge, patientGender, vitals } = req.body;
 
-    // 1. Validate prompt input
     if (!symptoms) {
       return res.status(400).json({ message: "Symptoms are required for AI analysis" });
     }
@@ -155,8 +157,6 @@ Format your response as a strict JSON object with this exact structure:
 
 Respond ONLY with the JSON object. Do not include markdown code blocks or any other text.`;
 
-    // 2. Initialize Model with generationConfig for strict JSON
-    // Use a supported Gemini model name for this API version.
     const model = genAI.getGenerativeModel({ 
       model: "gemini-flash-latest",
       generationConfig: { responseMimeType: "application/json" } 
@@ -165,10 +165,8 @@ Respond ONLY with the JSON object. Do not include markdown code blocks or any ot
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     
-    // 3. Robust JSON parsing
     let parsed;
     try {
-      // Still cleaning markdown just in case, though responseMimeType should handle it
       const clean = responseText.replace(/```json|```/g, "").trim();
       parsed = JSON.parse(clean);
     } catch (parseError) {
@@ -179,19 +177,18 @@ Respond ONLY with the JSON object. Do not include markdown code blocks or any ot
     res.status(200).json(parsed);
   } catch (error) {
     console.error("Gemini Controller Error:", error);
-    // Explicitly check for 404 (Model/Key issues)
     if (error.message.includes("404")) {
       return res.status(404).json({ message: "AI Model not found. Check API key and model name." });
     }
     res.status(500).json({ message: error.message });
   }
 };
+
 // ==================== CONSULTATIONS ====================
 
 // @desc    Create consultation
 // @route   POST /api/clinical/consultations
 // @access  Doctor
-
 export const createConsultation = async (req, res) => {
   try {
     const consultation = await Consultation.create({
@@ -212,7 +209,6 @@ export const createConsultation = async (req, res) => {
     return res.status(400).json({ message: error.message });
   }
 };
-
 
 // @desc    Get single consultation
 // @route   GET /api/clinical/consultations/:id
@@ -256,25 +252,55 @@ export const updateConsultation = async (req, res) => {
   }
 };
 
-// ==================== PRESCRIPTIONS ====================
+// ==================== ⚡ PRESCRIPTIONS (department sync linked!) ====================
 
-// @desc    Create prescription
+// @desc    Create prescription & sync to pharmacy request workflow queue
 // @route   POST /api/clinical/prescriptions
 // @access  Doctor
 export const createPrescription = async (req, res) => {
   try {
+    const doctorId = req.user.staffId || req.user._id;
+
+    // 1. Save standard clinical record history document
     const prescription = await Prescription.create({
       ...req.body,
-      doctor: req.user.staffId || req.user._id,
+      doctor: doctorId,
     });
 
+    // 2. Populate clinical instance records cleanly
     const populated = await prescription.populate([
-      { path: "patient", select: "fullName phone" },
+      { path: "patient", select: "fullName phone gender" },
       { path: "doctor", select: "fullName department" },
     ]);
 
-    res.status(201).json({ message: "Prescription created", prescription: populated });
+    // 3. 🚀 THE DEPARTMENT BRIDGE: Mirror this order straight into PharmacyRequest!
+    if (populated.patient) {
+      // Re-map the medications format array neatly to fit pharmacy.model schemas
+      const mappedMedications = Array.isArray(req.body.medications) 
+        ? req.body.medications.map(m => ({
+            drugName: m.drugName || m.medicine,
+            dosage: m.dosage || 'N/A',
+            quantity: parseInt(m.quantity || 1, 10)
+          }))
+        : [];
+
+      await PharmacyRequest.create({
+        patient: {
+          fullName: populated.patient.fullName,
+          _id: populated.patient._id.toString()
+        },
+        medications: mappedMedications,
+        notes: req.body.notes || 'Prescription issued from consultation dashboard.',
+        status: 'pending',
+        paymentStatus: 'pending',
+        createdBy: doctorId.toString()
+      });
+      console.log(`Successfully synced prescription to pharmacy workbench for: ${populated.patient.fullName}`);
+    }
+
+    res.status(201).json({ message: "Prescription created and sent to Pharmacy", prescription: populated });
   } catch (error) {
+    console.error("Prescription generation error:", error);
     res.status(400).json({ message: error.message });
   }
 };

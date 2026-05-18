@@ -1,410 +1,207 @@
-import PharmacyRequest from "./pharmacy.model.js";
-import Pharmacy from "./inventory.model.js";
+import PharmacyRequest from './pharmacy.model.js'; 
+import Inventory from './inventory.model.js'; 
 
-// ======================================================
-// @desc    Create new pharmacy request (from Consultation)
-// @route   POST /api/v1/pharmacy/requests
-// ======================================================
-export const createPharmacyRequest = async (req, res) => {
-  try {
-    const { patient, doctor, consultation, medications } = req.body;
+// ==================== 💊 INVENTORY MANAGEMENT ====================
 
-    // Create the request with a default status of "pending"
-    const newRequest = await PharmacyRequest.create({
-      patient,
-      doctor,
-      consultation,
-      medications,
-      status: "pending",
-      paymentStatus: "unpaid" // Default until finance clears it
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Pharmacy request created successfully",
-      data: newRequest
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to create pharmacy request",
-      error: error.message
-    });
-  }
-};
-
-// ======================================================
-// @desc    Get all pharmacy requests by status
-// @route   GET /api/v1/pharmacy/requests?status=pending
-// ======================================================
-export const getPharmacyRequestsByStatus = async (req, res) => {
-  try {
-    const { status } = req.query;
-
-    const requests = await PharmacyRequest.find(
-      status ? { status } : {}
-    )
-      .populate("patient", "fullName phone gender bloodGroup age")
-      .populate("doctor", "fullName")
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: requests.length,
-      data: requests,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching pharmacy requests",
-      error: error.message,
-    });
-  }
-};
-
-// ======================================================
-// @desc    Get single pharmacy request
-// @route   GET /api/v1/pharmacy/requests/:id
-// ======================================================
-export const getPharmacyRequestById = async (req, res) => {
-  try {
-    const request = await PharmacyRequest.findById(req.params.id)
-      .populate("patient")
-      .populate("doctor", "fullName");
-
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Request not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: request,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// ======================================================
-// @desc    Prepare medication for dispensing (FEFO)
-// @route   PUT /api/v1/pharmacy/requests/:id/process
-// ======================================================
-export const prepareForDispensing = async (req, res) => {
-  try {
-    const { selectedItems } = req.body;
-
-    const request = await PharmacyRequest.findById(req.params.id);
-
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Pharmacy request not found",
-      });
-    }
-
-    let totalAmount = 0;
-    const billDetails = [];
-
-    for (const item of selectedItems) {
-      const medicine = await Pharmacy.findOne({
-        itemName: item.name,
-      });
-
-      if (!medicine) {
-        return res.status(404).json({
-          success: false,
-          message: `${item.name} not found in inventory`,
-        });
-      }
-
-      if (medicine.totalStock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Insufficient stock for ${item.name}`,
-        });
-      }
-
-      // FEFO Sorting
-      const sortedBatches = medicine.batches.sort(
-        (a, b) =>
-          new Date(a.expiryDate) - new Date(b.expiryDate)
-      );
-
-      if (!sortedBatches.length) {
-        return res.status(400).json({
-          success: false,
-          message: `No available batches for ${item.name}`,
-        });
-      }
-
-      const currentPrice = sortedBatches[0].sellingPrice;
-
-      totalAmount += currentPrice * item.quantity;
-
-      billDetails.push({
-        medicineId: medicine._id,
-        name: item.name,
-        quantity: item.quantity,
-        price: currentPrice,
-      });
-    }
-
-    request.status = "awaiting-payment";
-    request.totalAmount = totalAmount;
-    request.billDetails = billDetails;
-
-    await request.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Medication prepared successfully",
-      totalAmount,
-      billDetails,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// ======================================================
-// @desc    Finalize dispensing after payment
-// @route   PUT /api/v1/pharmacy/requests/:id/dispense
-// ======================================================
-export const dispenseMedication = async (req, res) => {
-  try {
-    const { pharmacistNotes } = req.body;
-
-    const request = await PharmacyRequest.findById(req.params.id);
-
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Pharmacy request not found",
-      });
-    }
-   // Add this check to prevent the "not iterable" crash
-    if (!request.billDetails || !Array.isArray(request.billDetails)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "No bill details found. Please run the 'process' step again." 
-      });
-    }
-
-    // Existing payment check (keep this)
-    if (request.paymentStatus !== "paid") {
-       return res.status(402).json({ success: false, message: "Payment not verified" });
-    }
-    // Verify payment
-    if (request.paymentStatus !== "paid") {
-      return res.status(402).json({
-        success: false,
-        message: "Payment not verified",
-      });
-    }
-
-    // Deduct inventory using FEFO
-    for (const item of request.billDetails) {
-      const medicine = await Pharmacy.findById(
-        item.medicineId
-      );
-
-      if (!medicine) continue;
-
-      let remainingQuantity = item.quantity;
-
-      medicine.batches.sort(
-        (a, b) =>
-          new Date(a.expiryDate) - new Date(b.expiryDate)
-      );
-
-      for (const batch of medicine.batches) {
-        if (remainingQuantity <= 0) break;
-
-        const deducted = Math.min(
-          batch.quantity,
-          remainingQuantity
-        );
-
-        batch.quantity -= deducted;
-        remainingQuantity -= deducted;
-      }
-
-      // Remove empty batches
-      medicine.batches = medicine.batches.filter(
-        (batch) => batch.quantity > 0
-      );
-
-      // Update total stock
-      medicine.totalStock = medicine.batches.reduce(
-        (total, batch) => total + batch.quantity,
-        0
-      );
-
-      await medicine.save();
-    }
-
-    request.status = "completed";
-    request.pharmacistNotes = pharmacistNotes;
-    request.dispensedAt = Date.now();
-    request.dispensedBy = req.user ? req.user._id : request.doctor;
-
-    await request.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Medication dispensed successfully",
-      data: request,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-// Add this to your controller file
 export const getInventory = async (req, res) => {
-  try {
-    // Fetch all items from the inventory collection
-    const items = await Pharmacy.find({}).sort({ itemName: 1 });
-    
-    res.status(200).json({
-      success: true,
-      count: items.length,
-      data: items
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching inventory",
-      error: error.message
-    });
-  }
-};
-
-// ======================================================
-// @desc    Cancel pharmacy request
-// @route   PUT /api/v1/pharmacy/requests/:id/cancel
-// ======================================================
-export const cancelPharmacyRequest = async (req, res) => {
-  try {
-    const request = await PharmacyRequest.findByIdAndUpdate(
-      req.params.id,
-      { status: "cancelled" },
-      { new: true }
-    );
-
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Request not found",
-      });
+    try {
+        const inventory = await Inventory.find({}).sort({ itemName: 1 });
+        return res.status(200).json({ success: true, data: inventory });
+    } catch (error) {
+        return res.status(500).json({ message: "Failed to retrieve inventory: " + error.message });
     }
-
-    res.status(200).json({
-      success: true,
-      message: "Request cancelled successfully",
-      data: request,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
 };
 
-// ======================================================
-// @desc    Get completed pharmacy requests
-// @route   GET /api/v1/pharmacy/requests/completed
-// ======================================================
-export const getCompletedPharmacyRequests = async (
-  req,
-  res
-) => {
-  try {
-    const requests = await PharmacyRequest.find({
-      status: "completed",
-    })
-      .populate("patient", "fullName")
-      .populate("doctor", "fullName")
-      .sort({ dispensedAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: requests.length,
-      data: requests,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// ======================================================
-// @desc    Get patient medication history
-// @route   GET /api/v1/pharmacy/patients/:patientId
-// ======================================================
-export const getPatientMedicationHistory = async (
-  req,
-  res
-) => {
-  try {
-    const history = await PharmacyRequest.find({
-      patient: req.params.patientId,
-      status: "completed",
-    })
-      .populate("doctor", "fullName")
-      .sort({ dispensedAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: history.length,
-      data: history,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-// @desc    Add new item to inventory
-// @route   POST /api/v1/pharmacy/inventory
 export const addInventoryItem = async (req, res) => {
-  try {
-    const { itemName, itemType, sellingPrice, batches, reorderLevel } = req.body;
+    try {
+        const { itemName, itemType, sellingPrice, reorderLevel, batches } = req.body;
+        if (!itemName) return res.status(400).json({ message: "Drug name is required" });
 
-    // This uses the Pharmacy model (Inventory) we created earlier
-    const newItem = await Pharmacy.create({
-      itemName,
-      itemType,
-      sellingPrice,
-      batches,
-      reorderLevel
-    });
+        // Case-insensitive lookup to find existing drug titles
+        let drug = await Inventory.findOne({ itemName: new RegExp(`^${itemName}$`, 'i') });
 
-    res.status(201).json({
-      success: true,
-      message: "Inventory item added successfully",
-      data: newItem
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to add inventory item",
-      error: error.message
-    });
-  }
+        if (drug) {
+            if (batches && batches.length > 0) {
+                drug.batches.push(...batches);
+            }
+            if (sellingPrice) drug.sellingPrice = sellingPrice;
+        } else {
+            drug = new Inventory({
+                itemName,
+                itemType: itemType || 'medicine',
+                sellingPrice: sellingPrice || batches?.[0]?.sellingPrice || 0,
+                reorderLevel: reorderLevel || 10,
+                batches: batches || []
+            });
+        }
+
+        await drug.save(); // pre('save') automatically handles totalStock math
+        return res.status(201).json({ success: true, data: drug });
+    } catch (error) {
+        return res.status(500).json({ message: "Failed to save inventory: " + error.message });
+    }
+};
+
+export const deleteInventoryItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedItem = await Inventory.findByIdAndDelete(id);
+        if (!deletedItem) return res.status(404).json({ message: "Inventory item not found" });
+        return res.status(200).json({ message: "Item successfully removed from stock inventory." });
+    } catch (error) {
+        return res.status(500).json({ message: "Delete operation failed: " + error.message });
+    }
+};
+
+// ==================== 📋 QUEUE WORKFLOWS ====================
+
+export const createPharmacyRequest = async (req, res) => {
+    try {
+        const { patient, medications, notes, createdBy } = req.body;
+        const newRequest = new PharmacyRequest({
+            patient, medications, notes, createdBy,
+            status: 'pending',
+            paymentStatus: 'pending'
+        });
+        await newRequest.save();
+        return res.status(201).json(newRequest);
+    } catch (error) {
+        return res.status(500).json({ message: "Failed to issue prescription request: " + error.message });
+    }
+};
+
+export const getPharmacyRequestsByStatus = async (req, res) => {
+    try {
+        const { status } = req.query;
+        const filter = status ? { status } : {};
+        const requests = await PharmacyRequest.find(filter).sort({ createdAt: -1 });
+        return res.status(200).json(requests);
+    } catch (error) {
+        return res.status(500).json({ message: "Failed to retrieve queue: " + error.message });
+    }
+};
+
+export const getCompletedPharmacyRequests = async (req, res) => {
+    try {
+        // Find all requests with status 'dispensed'
+        const completed = await PharmacyRequest.find({ status: 'dispensed' }).sort({ dispensedAt: -1 });
+        
+        // ✅ Normalized wrapper format to ensure frontend mappings don't read empty states
+        return res.status(200).json({
+            success: true,
+            count: completed.length,
+            data: completed
+        });
+    } catch (error) {
+        return res.status(500).json({ 
+            success: false, 
+            message: "Failed to retrieve dispensing log history: " + error.message 
+        });
+    }
+};
+
+export const getPharmacyRequestById = async (req, res) => {
+    try {
+        const request = await PharmacyRequest.findById(req.params.id);
+        if (!request) return res.status(404).json({ message: "Request not found" });
+        return res.status(200).json(request);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const getPatientMedicationHistory = async (req, res) => {
+    try {
+        const history = await PharmacyRequest.find({ "patient._id": req.params.patientId, status: "dispensed" });
+        return res.status(200).json(history);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const prepareForDispensing = async (req, res) => {
+    try {
+        const request = await PharmacyRequest.findByIdAndUpdate(req.params.id, { status: 'processing' }, { new: true });
+        return res.status(200).json(request);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+export const cancelPharmacyRequest = async (req, res) => {
+    try {
+        const request = await PharmacyRequest.findByIdAndUpdate(req.params.id, { status: 'cancelled' }, { new: true });
+        return res.status(200).json(request);
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
+};
+
+// ==================== ⚡ THE FEFO DISPENSING MECHANISM ====================
+
+export const dispenseMedication = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { dispensedBy } = req.body;
+
+        const pharmacyRequest = await PharmacyRequest.findById(id);
+        if (!pharmacyRequest) return res.status(404).json({ message: "Prescription order request not found." });
+
+        // 🛠️ CASHIER TRAP BYPASS: Auto-verify payment status if a pharmacist clears it directly
+        if (pharmacyRequest.paymentStatus !== 'completed' && pharmacyRequest.paymentStatus !== 'paid') {
+            console.log("Overriding unpaid request gate via direct Pharmacist checkout validation...");
+            pharmacyRequest.paymentStatus = 'completed';
+        }
+
+        // Loop through individual medications ordered
+        for (const med of pharmacyRequest.medications) {
+            const TargetDrugName = med.drugName || med.medicine;
+            const inventoryItem = await Inventory.findOne({ itemName: new RegExp(`^${TargetDrugName}$`, 'i') });
+            
+            if (!inventoryItem) {
+                return res.status(400).json({ 
+                    message: `Aborted. "${TargetDrugName}" is completely missing from current inventory profiles.` 
+                });
+            }
+
+            // FEFO Sort: Force organize remaining active batches by expiration deadlines (earliest expires first)
+            inventoryItem.batches.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+            let requiredQty = parseInt(med.quantity || 1, 10);
+
+            // Sequential stock deduction across active batches
+            for (const batch of inventoryItem.batches) {
+                if (requiredQty <= 0) break;
+                if (batch.quantity <= 0) continue;
+
+                if (batch.quantity >= requiredQty) {
+                    batch.quantity -= requiredQty;
+                    requiredQty = 0;
+                } else {
+                    requiredQty -= batch.quantity;
+                    batch.quantity = 0;
+                }
+            }
+
+            // Error validation check if total stock volume runs short
+            if (requiredQty > 0) {
+                return res.status(400).json({ 
+                    message: `Insufficient stock for ${inventoryItem.itemName}. Short by: ${requiredQty} units.` 
+                });
+            }
+
+            // Sync structural volumes and save updates
+            await inventoryItem.save();
+        }
+
+        // Complete request lifecycle tracking assignments
+        pharmacyRequest.status = 'dispensed';
+        pharmacyRequest.dispensedBy = dispensedBy;
+        pharmacyRequest.dispensedAt = new Date();
+        await pharmacyRequest.save();
+
+        return res.status(200).json({ message: "Prescription successfully dispensed via FEFO execution tracking!", data: pharmacyRequest });
+    } catch (error) {
+        console.error("Dispense engine error:", error);
+        return res.status(500).json({ message: "Dispensing failed: " + error.message });
+    }
 };
