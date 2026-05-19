@@ -9,8 +9,8 @@ import Prescription from "./prescription.model.js";
 import LabRequest from "./labRequest.model.js";
 import RadiologyRequest from "./radiologyRequest.model.js";
 import WardRequest from "./wardRequest.model.js";
-// 💊 Import the Pharmacy Request schema to link departments together!
 import PharmacyRequest from "../pharmacy/pharmacy.model.js"; 
+import Billing from "../billing/billing.model.js";
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
 console.log("Gemini Key Status:", geminiApiKey ? "Loaded" : "MISSING");
@@ -191,21 +191,58 @@ Respond ONLY with the JSON object. Do not include markdown code blocks or any ot
 // @access  Doctor
 export const createConsultation = async (req, res) => {
   try {
+    // 1. Create the clinical session record document as normal
     const consultation = await Consultation.create({
       ...req.body,
       doctor: req.user.staffId || req.user._id,
     });
 
+    // 2. Populate information for the immediate frontend return statement
     const populated = await consultation.populate([
       { path: "patient", select: "fullName phone gender bloodGroup" },
       { path: "doctor", select: "fullName department" },
     ]);
 
+    // ⚡ 3. THE CASHIER POOL INTERACTION LINK
+    if (populated.patient) {
+      const BASE_CONSULTATION_FEE = 500; // Define your flat hospital consultation rate here
+
+      // Look for an existing unpaid billing document for this patient, or create a brand new one
+      let activeBill = await Billing.findOne({
+        patient: populated.patient._id,
+        paymentStatus: { $in: ["Unpaid", "Partially Paid"] }
+      });
+
+      if (activeBill) {
+        // If they already have an open invoice balance running today, just append or override the consultation charge
+        activeBill.consultation = {
+          consultationId: populated._id,
+          fee: BASE_CONSULTATION_FEE,
+          status: "Pending"
+        };
+        await activeBill.save();
+        console.log(`Updated existing cashier invoice pool entry for patient: ${populated.patient.fullName}`);
+      } else {
+        // Otherwise, construct a totally fresh active billing file instance
+        await Billing.create({
+          patient: populated.patient._id,
+          consultation: {
+            consultationId: populated._id,
+            fee: BASE_CONSULTATION_FEE,
+            status: "Pending"
+          },
+          paymentStatus: "Unpaid"
+        });
+        console.log(`Created new centralized cashier pool invoice entry for patient: ${populated.patient.fullName}`);
+      }
+    }
+
     return res.status(201).json({
-      message: "Consultation created",
+      message: "Consultation recorded successfully and sent to Cashier Pool.",
       consultation: populated,
     });
   } catch (error) {
+    console.error("Consultation Creation Link Error:", error);
     return res.status(400).json({ message: error.message });
   }
 };

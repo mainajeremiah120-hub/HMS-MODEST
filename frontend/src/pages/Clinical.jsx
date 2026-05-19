@@ -157,6 +157,7 @@ function ConsultationTab() {
     icd10Description: "",
     notes: "",
     followUpDate: "",
+    consultationFee: 500,
     vitals: {
       bloodPressure: "",
       temperature: "",
@@ -232,7 +233,7 @@ function ConsultationTab() {
       setSuccess("Consultation created successfully!");
       setFormData({
         patient: "", symptoms: "", diagnosis: "", icd10Code: "",
-        icd10Description: "", notes: "", followUpDate: "",
+        icd10Description: "", notes: "", followUpDate: "",consultationFee: 500,
         vitals: { bloodPressure: "", temperature: "", pulse: "", weight: "", height: "", oxygenSaturation: "", respiratoryRate: "" },
       });
       setAiSuggestion(null);
@@ -340,7 +341,45 @@ function ConsultationTab() {
             <input type="date" name="followUpDate" value={formData.followUpDate} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
           </div>
         </div>
-
+        {/* ==================== NEW CONSULTATION FEE SECTION ==================== */}
+        <div className="bg-white rounded-xl shadow p-6">
+          <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            💵 Consultation Billing Charges
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rate Category</label>
+              <select 
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                onChange={(e) => {
+                  let fee = 500;
+                  if (e.target.value === "specialist") fee = 1000;
+                  if (e.target.value === "exempt") fee = 0;
+                  setFormData({ ...formData, consultationFee: fee });
+                }}
+              >
+                <option value="standard">Standard Consultation (KSh 500)</option>
+                <option value="specialist">Specialist Consultation (KSh 1,000)</option>
+                <option value="exempt">Exempt / Corporate Scheme (KSh 0)</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Consultation Fee (KSh)</label>
+              <input 
+                type="number" 
+                name="consultationFee" 
+                value={formData.consultationFee} 
+                onChange={(e) => setFormData({ ...formData, consultationFee: Number(e.target.value) })}
+                required
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 font-semibold text-gray-800" 
+              />
+            </div>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            * Saving this consultation will automatically queue this balance into the cashier desk's pending bills pool.
+          </p>
+        </div>
+        {/* ====================================================================== */}
         <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition disabled:opacity-50">
           {loading ? "Saving..." : "Save Consultation"}
         </button>

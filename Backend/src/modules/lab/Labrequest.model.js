@@ -66,6 +66,11 @@ const labRequestSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "processing", "completed", "cancelled"],
       default: "pending",
+    testCost: {
+      type: Number,
+      required: [true, "Test billing cost is required"],
+      default: 0,
+    },
     },
     // Structured results based on test type template
     results: [resultParameterSchema],
