@@ -189,60 +189,77 @@ Respond ONLY with the JSON object. Do not include markdown code blocks or any ot
 // @desc    Create consultation
 // @route   POST /api/clinical/consultations
 // @access  Doctor
-export const createConsultation = async (req, res) => {
+export const createConsultation = async (req, res, next) => {
   try {
-    // 1. Create the clinical session record document as normal
+    // 1. Check if patient exists in request body
+    if (!req.body.patient) {
+      return res.status(400).json({ message: "Patient ID is required to record a consultation." });
+    }
+
+    // 2. Create the clinical session record document as normal
     const consultation = await Consultation.create({
       ...req.body,
       doctor: req.user.staffId || req.user._id,
     });
 
-    // 2. Populate information for the immediate frontend return statement
+    // 3. Populate information for the immediate frontend return statement
     const populated = await consultation.populate([
       { path: "patient", select: "fullName phone gender bloodGroup" },
       { path: "doctor", select: "fullName department" },
     ]);
 
-    // ⚡ 3. THE CASHIER POOL INTERACTION LINK
-    if (populated.patient) {
-      const BASE_CONSULTATION_FEE = 500; // Define your flat hospital consultation rate here
+    // ⚡ 4. SAFE CASHIER POOL INTERACTION LINK (Isolated from Main Thread)
+    try {
+      if (populated.patient) {
+        // Use the rate submitted by the doctor's form, or fallback to standard 500 KSh
+        const selectedFee = req.body.consultationFee ? Number(req.body.consultationFee) : 500;
 
-      // Look for an existing unpaid billing document for this patient, or create a brand new one
-      let activeBill = await Billing.findOne({
-        patient: populated.patient._id,
-        paymentStatus: { $in: ["Unpaid", "Partially Paid"] }
-      });
-
-      if (activeBill) {
-        // If they already have an open invoice balance running today, just append or override the consultation charge
-        activeBill.consultation = {
-          consultationId: populated._id,
-          fee: BASE_CONSULTATION_FEE,
-          status: "Pending"
-        };
-        await activeBill.save();
-        console.log(`Updated existing cashier invoice pool entry for patient: ${populated.patient.fullName}`);
-      } else {
-        // Otherwise, construct a totally fresh active billing file instance
-        await Billing.create({
+        // Look for an existing open invoice balance running for this patient
+        let activeBill = await Billing.findOne({
           patient: populated.patient._id,
-          consultation: {
-            consultationId: populated._id,
-            fee: BASE_CONSULTATION_FEE,
-            status: "Pending"
-          },
-          paymentStatus: "Unpaid"
+          paymentStatus: { $in: ["Unpaid", "Partially Paid", "pending", "Pending"] }
         });
-        console.log(`Created new centralized cashier pool invoice entry for patient: ${populated.patient.fullName}`);
+
+        if (activeBill) {
+          // Append or override the consultation charge link
+          activeBill.consultation = {
+            consultationId: populated._id,
+            fee: selectedFee,
+            status: "Pending"
+          };
+          
+          // Re-trigger total amounts recalculation if your pre-save hook handles it
+          await activeBill.save();
+          console.log(`💵 Balance linked to existing invoice pool for: ${populated.patient.fullName}`);
+        } else {
+          // Construct a completely fresh active billing file instance
+          await Billing.create({
+            patient: populated.patient._id,
+            consultation: {
+              consultationId: populated._id,
+              fee: selectedFee,
+              status: "Pending"
+            },
+            paymentStatus: "Unpaid"
+          });
+          console.log(`💵 Fresh invoice created in cashier pool for: ${populated.patient.fullName}`);
+        }
       }
+    } catch (billingError) {
+      // If billing setup has a schema mismatch, log it but DO NOT crash the consultation return!
+      console.error("⚠️ Cashier Pool Sync Warning (Consultation saved, but billing link failed):", billingError.message);
     }
 
     return res.status(201).json({
-      message: "Consultation recorded successfully and sent to Cashier Pool.",
+      message: "Consultation recorded successfully.",
       consultation: populated,
     });
+
   } catch (error) {
-    console.error("Consultation Creation Link Error:", error);
+    console.error("🔴 Hard Consultation Failure:", error);
+    if (typeof next === "function") {
+      return next(error);
+    }
     return res.status(400).json({ message: error.message });
   }
 };
