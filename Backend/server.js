@@ -12,6 +12,7 @@ import receptionRoutes from "./src/modules/reception/reception.routes.js";
 import clinicalRoutes from "./src/modules/clinical/clinical.routes.js";
 import labRoutes from "./src/modules/lab/lab.routes.js";
 import pharmacyRoutes from './src/modules/pharmacy/pharmacy.route.js';
+import billingRoutes from "./src/modules/billing/billingRoutes.js";
 
 dotenv.config({ path: "./.env" });
 
@@ -34,6 +35,7 @@ app.use("/api/reception", receptionRoutes);
 app.use("/api/clinical", clinicalRoutes);
 app.use("/api/lab", labRoutes);
 app.use('/api/pharmacy', pharmacyRoutes);
+app.use("/api/billing", billingRoutes);
 // AUTH ROUTES
 app.use("/api/auth", authRoutes);
 

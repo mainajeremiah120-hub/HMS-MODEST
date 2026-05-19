@@ -1,4 +1,3 @@
-// models/billing.model.js
 import mongoose from "mongoose";
 
 const billingSchema = new mongoose.Schema(
@@ -8,13 +7,11 @@ const billingSchema = new mongoose.Schema(
       ref: "Patient",
       required: true,
     },
-    // Track consultation specifics directly inside the centralized bill
     consultation: {
       consultationId: { type: mongoose.Schema.Types.ObjectId, ref: "Consultation" },
-      fee: { type: Number, default: 500 }, // Standard default consultation fee (e.g., 500 KES)
+      fee: { type: Number, default: 500 },
       status: { type: String, enum: ["Pending", "Paid"], default: "Pending" },
     },
-    // Ready-made buckets for the next modules we tackle
     labCharges: [
       {
         labRequestId: { type: mongoose.Schema.Types.ObjectId },
@@ -48,7 +45,7 @@ const billingSchema = new mongoose.Schema(
     },
     processedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Staff", // Cashier, Admin, or Receptionist who completes the transaction
+      ref: "User", // Matches standard auth token references
       default: null,
     },
   },

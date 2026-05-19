@@ -142,7 +142,7 @@ function AppointmentsTab() {
 }
 
 // ==================== CONSULTATION TAB ====================
-function ConsultationTab() {
+function ConsultationTab({ onConsultationCreated }) {
   const [patientList, setPatientList] = useState([]);
   const [aiSuggestion, setAiSuggestion] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -229,11 +229,16 @@ function ConsultationTab() {
     setError("");
     setSuccess("");
     try {
-      await API.post("/clinical/consultations", formData);
+      const res = await API.post("/clinical/consultations", formData);
+      const createdId = res.data?._id || res.data?.consultation?._id;
+      if (createdId && onConsultationCreated) {
+        onConsultationCreated(createdId);
+      }
+
       setSuccess("Consultation created successfully!");
       setFormData({
         patient: "", symptoms: "", diagnosis: "", icd10Code: "",
-        icd10Description: "", notes: "", followUpDate: "",consultationFee: 500,
+        icd10Description: "", notes: "", followUpDate: "", consultationFee: 500,
         vitals: { bloodPressure: "", temperature: "", pulse: "", weight: "", height: "", oxygenSaturation: "", respiratoryRate: "" },
       });
       setAiSuggestion(null);
@@ -341,7 +346,7 @@ function ConsultationTab() {
             <input type="date" name="followUpDate" value={formData.followUpDate} onChange={handleChange} className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
           </div>
         </div>
-        {/* ==================== NEW CONSULTATION FEE SECTION ==================== */}
+
         <div className="bg-white rounded-xl shadow p-6">
           <h3 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
             💵 Consultation Billing Charges
@@ -379,7 +384,7 @@ function ConsultationTab() {
             * Saving this consultation will automatically queue this balance into the cashier desk's pending bills pool.
           </p>
         </div>
-        {/* ====================================================================== */}
+
         <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition disabled:opacity-50">
           {loading ? "Saving..." : "Save Consultation"}
         </button>
@@ -537,13 +542,18 @@ function PrescriptionsTab() {
 }
 
 // ==================== LAB REQUESTS TAB ====================
-function LabTab() {
+function LabTab({ activeConsultationId }) {
   const [patientList, setPatientList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    patient: "", testName: "", testType: "", urgency: "routine", clinicalNotes: "",
+    patient: "", 
+    consultation: activeConsultationId || "", 
+    testName: "", 
+    testType: "", 
+    urgency: "routine", 
+    clinicalNotes: "",
   });
 
   useEffect(() => {
@@ -554,6 +564,12 @@ function LabTab() {
     fetchPatients();
   }, []);
 
+  useEffect(() => {
+    if (activeConsultationId) {
+      setFormData((prev) => ({ ...prev, consultation: activeConsultationId }));
+    }
+  }, [activeConsultationId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -562,7 +578,14 @@ function LabTab() {
     try {
       await API.post("/clinical/lab-requests", formData);
       setSuccess("Lab request sent successfully!");
-      setFormData({ patient: "", testName: "", testType: "", urgency: "routine", clinicalNotes: "" });
+      setFormData({ 
+        patient: "", 
+        consultation: activeConsultationId || "", 
+        testName: "", 
+        testType: "", 
+        urgency: "routine", 
+        clinicalNotes: "" 
+      });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create lab request");
     } finally {
@@ -617,13 +640,18 @@ function LabTab() {
 }
 
 // ==================== RADIOLOGY TAB ====================
-function RadiologyTab() {
+function RadiologyTab({ activeConsultationId }) { // ✅ Added prop
   const [patientList, setPatientList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    patient: "", scanType: "", bodyPart: "", urgency: "routine", clinicalNotes: "",
+    patient: "", 
+    consultation: activeConsultationId || "", // ✅ Linked ID
+    scanType: "", 
+    bodyPart: "", 
+    urgency: "routine", 
+    clinicalNotes: "",
   });
 
   useEffect(() => {
@@ -634,6 +662,13 @@ function RadiologyTab() {
     fetchPatients();
   }, []);
 
+  // ✅ Keep formData tracking active context links dynamically
+  useEffect(() => {
+    if (activeConsultationId) {
+      setFormData((prev) => ({ ...prev, consultation: activeConsultationId }));
+    }
+  }, [activeConsultationId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -642,7 +677,14 @@ function RadiologyTab() {
     try {
       await API.post("/clinical/radiology-requests", formData);
       setSuccess("Radiology request sent successfully!");
-      setFormData({ patient: "", scanType: "", bodyPart: "", urgency: "routine", clinicalNotes: "" });
+      setFormData({ 
+        patient: "", 
+        consultation: activeConsultationId || "", // ✅ Clear safely
+        scanType: "", 
+        bodyPart: "", 
+        urgency: "routine", 
+        clinicalNotes: "" 
+      });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create radiology request");
     } finally {
@@ -697,13 +739,17 @@ function RadiologyTab() {
 }
 
 // ==================== WARD TAB ====================
-function WardTab() {
+function WardTab({ activeConsultationId }) { // ✅ Added prop
   const [patientList, setPatientList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    patient: "", wardType: "", admissionReason: "", urgency: "routine",
+    patient: "", 
+    consultation: activeConsultationId || "", // ✅ Linked ID
+    wardType: "", 
+    admissionReason: "", 
+    urgency: "routine",
   });
 
   useEffect(() => {
@@ -714,6 +760,13 @@ function WardTab() {
     fetchPatients();
   }, []);
 
+  // ✅ Sync active session key dynamically
+  useEffect(() => {
+    if (activeConsultationId) {
+      setFormData((prev) => ({ ...prev, consultation: activeConsultationId }));
+    }
+  }, [activeConsultationId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -722,7 +775,13 @@ function WardTab() {
     try {
       await API.post("/clinical/ward-requests", formData);
       setSuccess("Ward admission request sent successfully!");
-      setFormData({ patient: "", wardType: "", admissionReason: "", urgency: "routine" });
+      setFormData({ 
+        patient: "", 
+        consultation: activeConsultationId || "", // ✅ Clear safely
+        wardType: "", 
+        admissionReason: "", 
+        urgency: "routine" 
+      });
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create ward request");
     } finally {
@@ -784,10 +843,26 @@ const tabs = [
 
 function Clinical() {
   const [activeTab, setActiveTab] = useState("appointments");
+  // ✅ Lifted State: Manages encounter session across tabs globally
+  const [activeConsultationId, setActiveConsultationId] = useState("");
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Clinical Consultation</h1>
+      
+      {/* Active Encounter Ribbon Notification */}
+      {activeConsultationId && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl px-4 py-2 mb-4 text-xs font-medium flex justify-between items-center animate-pulse">
+          <span>🎯 Active Encounter Linked (ID: {activeConsultationId}). Downstream order items will link automatically.</span>
+          <button 
+            onClick={() => setActiveConsultationId("")} 
+            className="underline hover:text-blue-900 ml-2"
+          >
+            Clear Session
+          </button>
+        </div>
+      )}
+
       <div className="flex gap-2 mb-6 border-b border-gray-200 flex-wrap">
         {tabs.map((tab) => (
           <button
@@ -801,12 +876,26 @@ function Clinical() {
           </button>
         ))}
       </div>
+      
       {activeTab === "appointments" && <AppointmentsTab />}
-      {activeTab === "consultation" && <ConsultationTab />}
+      
+      {/* ✅ Feeds the session ID back up to parent on creation */}
+      {activeTab === "consultation" && (
+        <ConsultationTab onConsultationCreated={(id) => setActiveConsultationId(id)} />
+      )}
+      
       {activeTab === "prescriptions" && <PrescriptionsTab />}
-      {activeTab === "lab" && <LabTab />}
-      {activeTab === "radiology" && <RadiologyTab />}
-      {activeTab === "ward" && <WardTab />}
+      
+      {/* ✅ Secure downlinks to catch data links automatically */}
+      {activeTab === "lab" && (
+        <LabTab activeConsultationId={activeConsultationId} />
+      )}
+      {activeTab === "radiology" && (
+        <RadiologyTab activeConsultationId={activeConsultationId} />
+      )}
+      {activeTab === "ward" && (
+        <WardTab activeConsultationId={activeConsultationId} />
+      )}
     </div>
   );
 }

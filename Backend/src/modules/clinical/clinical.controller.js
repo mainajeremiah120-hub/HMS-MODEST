@@ -424,25 +424,77 @@ Respond with JSON only, no additional text or markdown.`;
   }
 };
 
-// ==================== LAB REQUESTS ====================
+// ==================== ⚡ LAB REQUESTS (WITH AUTOMATED FEES) ====================
 
-// @desc    Create lab request
+// Official Hospital Laboratory Service Fee Menu Table Lookup
+const LAB_FEES_MENU = {
+  "Blood Test": 200,
+  "Urine Test": 200,
+  "Stool Test": 200,
+  "Malaria Test": 150,       // Standard rapid diagnostic test rate
+  "Blood Sugar": 150,        // Point-of-care fingerprick glucose
+  "Full Blood Count": 800,   // Automated cell counter run
+  "Liver Function Test": 800,
+  "Kidney Function Test": 800,
+  "Lipid Profile": 800,
+  "Culture & Sensitivity": 1200,
+  "Thyroid Function": 1200,
+  "HIV Test": 0,             // Free out-patient public health screening
+  "Other": 200               // Baseline miscellaneous default
+};
+
+// @desc    Create lab request with AUTOMATED pricing sync to Cashier Pool
 // @route   POST /api/clinical/lab-requests
 // @access  Doctor
 export const createLabRequest = async (req, res) => {
   try {
+    const { patient, testName, testType, urgency, clinicalNotes, consultation } = req.body;
+    const doctorId = req.user.staffId || req.user._id;
+
+    // 1. Resolve test price automatically based on selection type
+    const automaticallyResolvedCost = LAB_FEES_MENU[testType] !== undefined ? LAB_FEES_MENU[testType] : 200;
+
+    // 2. Create the lab request record document with the silent backend fee attachment
     const labRequest = await LabRequest.create({
-      ...req.body,
-      doctor: req.user.staffId || req.user._id,
+      patient,
+      doctor: doctorId,
+      consultation: consultation || null,
+      testName,
+      testType,
+      urgency,
+      clinicalNotes,
+      testCost: automaticallyResolvedCost,
+      status: "pending"
     });
 
+    // 3. Populate basic references for the client reply body
     const populated = await labRequest.populate([
       { path: "patient", select: "fullName phone" },
       { path: "doctor", select: "fullName department" },
     ]);
 
-    res.status(201).json({ message: "Lab request created", labRequest: populated });
+    // 4. Synchronize & increment bill dynamically in the centralized Cashier Pool Billing document
+    await Billing.findOneAndUpdate(
+      { patient, status: { $in: ["Unpaid", "Partially Paid", "pending"] } }, // Dynamic alignment with billing status types
+      {
+        $push: {
+          labItems: {
+            labRequestId: populated._id,
+            name: `${testType} (${testName})`,
+            cost: automaticallyResolvedCost,
+          },
+        },
+        $inc: { totalAmountDue: automaticallyResolvedCost },
+      },
+      { upsert: true, new: true }
+    );
+
+    res.status(201).json({ 
+      message: "Lab request ordered and standard panel charges synced into Cashier Pool.", 
+      labRequest: populated 
+    });
   } catch (error) {
+    console.error("Lab creation fee sync logic error:", error);
     res.status(400).json({ message: error.message });
   }
 };
