@@ -2,9 +2,25 @@ import { useState, useEffect } from "react";
 import API from "../api/axios";
 
 // ==================== PENDING TAB ====================
-function PendingTab({ onProcess, onDelete, refreshKey }) { // ✅ Added refreshKey prop
+function PendingTab({ onProcess, onDelete, refreshKey }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // ✅ FIX: Define user at the component level - safely get from localStorage
+  const getUserRole = () => {
+    try {
+      const userData = localStorage.getItem("user");
+      if (!userData) return null;
+      const parsed = JSON.parse(userData);
+      return parsed?.role || null;
+    } catch (e) {
+      console.error("Error parsing user:", e);
+      return null;
+    }
+  };
+  
+  const userRole = getUserRole();
+  const canDelete = userRole === 'admin' || userRole === 'lab';
 
   const fetchRequests = async () => {
     try {
@@ -17,7 +33,6 @@ function PendingTab({ onProcess, onDelete, refreshKey }) { // ✅ Added refreshK
     }
   };
 
-  // ✅ Automatically re-fetch data whenever refreshKey changes
   useEffect(() => { 
     fetchRequests(); 
   }, [refreshKey]);
@@ -47,7 +62,7 @@ function PendingTab({ onProcess, onDelete, refreshKey }) { // ✅ Added refreshK
                 <th className="px-6 py-3 text-left">Urgency</th>
                 <th className="px-6 py-3 text-left">Date</th>
                 <th className="px-6 py-3 text-left">Actions</th>
-                <th className="px-6 py-3 text-left">Delete</th>
+                {canDelete && <th className="px-6 py-3 text-left">Delete</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -62,7 +77,7 @@ function PendingTab({ onProcess, onDelete, refreshKey }) { // ✅ Added refreshK
                       {r.urgency}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-gray-600">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—"}</td>
                   <td className="px-6 py-4">
                     <button
                       onClick={() => onProcess(r)}
@@ -71,20 +86,19 @@ function PendingTab({ onProcess, onDelete, refreshKey }) { // ✅ Added refreshK
                       Process
                     </button>
                   </td>
-                  {(user?.role === 'admin' || user?.role === 'lab') && (
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => onDelete(r._id, r.patient?.fullName)} // ✅ simplified parameter footprint
-                      className="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                   )}
-                  
-                </tr> // <-- This must be OUTSIDE the condition
+                  {/* ✅ SAFELY access user role */}
+                  {canDelete && (
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => onDelete(r._id, r.patient?.fullName)}
+                        className="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  )}
+                </tr>
               ))}   
-               
             </tbody>
           </table>
         )}
@@ -156,9 +170,25 @@ function ProcessingTab({ onEnterResults, refreshKey }) {
 }
 
 // ==================== COMPLETED TAB ====================
-function CompletedTab({ onViewReport, onDelete, refreshKey }) { // ✅ Added refreshKey prop
+function CompletedTab({ onViewReport, onDelete, refreshKey }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // ✅ FIX: Define user at the component level - safely get from localStorage
+  const getUserRole = () => {
+    try {
+      const userData = localStorage.getItem("user");
+      if (!userData) return null;
+      const parsed = JSON.parse(userData);
+      return parsed?.role || null;
+    } catch (e) {
+      console.error("Error parsing user:", e);
+      return null;
+    }
+  };
+  
+  const userRole = getUserRole();
+  const canDelete = userRole === 'admin' || userRole === 'lab';
 
   const fetchRequests = async () => {
     try {
@@ -173,7 +203,7 @@ function CompletedTab({ onViewReport, onDelete, refreshKey }) { // ✅ Added ref
 
   useEffect(() => { 
     fetchRequests(); 
-  }, [refreshKey]); // ✅ list as safe trigger dependency
+  }, [refreshKey]); 
 
   return (
     <div>
@@ -193,7 +223,9 @@ function CompletedTab({ onViewReport, onDelete, refreshKey }) { // ✅ Added ref
                 <th className="px-6 py-3 text-left">Doctor</th>
                 <th className="px-6 py-3 text-left">Resulted</th>
                 <th className="px-6 py-3 text-left">Actions</th>
-                <th className="px-6 py-3 text-left">Delete</th>
+                {canDelete && (
+                  <th className="px-6 py-3 text-left">Delete</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -214,14 +246,17 @@ function CompletedTab({ onViewReport, onDelete, refreshKey }) { // ✅ Added ref
                       View Report
                     </button>
                   </td>
-                  <td className="px-6 py-4">
-                    <button
-                      onClick={() => onDelete(r._id, r.patient?.fullName)} // ✅ simplified footprint
-                      className="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition"
-                    >
-                      Delete
-                    </button>
-                  </td>
+                  {/* ✅ SAFELY access user role */}
+                  {canDelete && (
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => onDelete(r._id, r.patient?.fullName)}
+                        className="bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -333,7 +368,7 @@ function PatientHistoryTab({ onViewReport }) {
                       {r.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{new Date(r.createdAt).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-gray-600">{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—"}</td>
                   <td className="px-6 py-4">
                     {r.status === "completed" && (
                       <button onClick={() => onViewReport(r)} className="bg-purple-600 text-white px-3 py-1 rounded-lg text-xs hover:bg-purple-700 transition">
@@ -536,7 +571,18 @@ function ResultEntryModal({ request, onClose, onSave }) {
 
 // ==================== LAB REPORT MODAL ====================
 function LabReportModal({ request, onClose }) {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const getUser = () => {
+    try {
+      const userData = localStorage.getItem("user");
+      if (!userData) return {};
+      return JSON.parse(userData);
+    } catch (e) {
+      console.error("Error parsing user:", e);
+      return {};
+    }
+  };
+  
+  const user = getUser();
 
   const flagColors = {
     "NORMAL": "text-green-700",
@@ -583,7 +629,7 @@ function LabReportModal({ request, onClose }) {
               <p className="text-sm"><span className="font-medium">Test:</span> {request.testName}</p>
               <p className="text-sm"><span className="font-medium">Type:</span> {request.testType}</p>
               <p className="text-sm"><span className="font-medium">Requesting Doctor:</span> {request.doctor?.fullName}</p>
-              <p className="text-sm"><span className="font-medium">Date Requested:</span> {new Date(request.createdAt).toLocaleDateString()}</p>
+              <p className="text-sm"><span className="font-medium">Date Requested:</span> {request.createdAt ? new Date(request.createdAt).toLocaleDateString() : "—"}</p>
               <p className="text-sm"><span className="font-medium">Date Resulted:</span> {request.resultUploadedAt ? new Date(request.resultUploadedAt).toLocaleDateString() : "—"}</p>
               <p className="text-sm"><span className="font-medium">Processed By:</span> {request.processedBy?.fullName || user?.fullName}</p>
             </div>
@@ -703,13 +749,12 @@ function Lab() {
     }
   };
 
-  // ✅ Revised clean parent delete logic 
   const handleDeleteLabRequest = async (id, patientName) => {
     if (window.confirm(`Are you sure you want to permanently delete the lab request for ${patientName || "this patient"}?`)) {
       try {
         await API.delete(`/lab/requests/${id}`);
         alert("Lab record successfully deleted.");
-        setRefreshKey((k) => k + 1); // ✅ Simply update state key to instantly trigger component re-fetch safely
+        setRefreshKey((k) => k + 1); 
       } catch (err) {
         console.error(err);
         alert("Deletion failed: " + (err.response?.data?.message || err.message));
@@ -744,7 +789,7 @@ function Lab() {
       {/* Tab Content */}
       {activeTab === "pending" && (
         <PendingTab 
-          refreshKey={refreshKey} // ✅ Controlled clean updates
+          refreshKey={refreshKey}
           onProcess={handleProcess} 
           onDelete={handleDeleteLabRequest} 
         />
@@ -757,7 +802,7 @@ function Lab() {
       )}
       {activeTab === "completed" && (
         <CompletedTab 
-          refreshKey={refreshKey} // ✅ Controlled clean updates
+          refreshKey={refreshKey}
           onViewReport={handleViewReport} 
           onDelete={handleDeleteLabRequest} 
         />
