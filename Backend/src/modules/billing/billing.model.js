@@ -52,14 +52,14 @@ const billingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Pre-save hook to calculate total live expenditure automatically across arrays
-billingSchema.pre("save", function (next) {
-  const consultationAmt = this.consultation ? this.consultation.fee : 0;
-  const labAmt = this.labCharges.reduce((sum, item) => sum + item.cost, 0);
-  const pharmacyAmt = this.pharmacyCharges.reduce((sum, item) => sum + item.cost, 0);
+// Pre-save hook updated to be next-agnostic
+billingSchema.pre("save", function () {
+  const consultationAmt = this.consultation ? (this.consultation.fee || 0) : 0;
+  const labAmt = this.labCharges.reduce((sum, item) => sum + (item.cost || 0), 0);
+  const pharmacyAmt = this.pharmacyCharges.reduce((sum, item) => sum + (item.cost || 0), 0);
 
   this.totalAmount = consultationAmt + labAmt + pharmacyAmt;
-  next();
+  // No 'next()' call needed here
 });
 
 const Billing = mongoose.model("Billing", billingSchema);

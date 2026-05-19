@@ -158,7 +158,7 @@ Format your response as a strict JSON object with this exact structure:
 Respond ONLY with the JSON object. Do not include markdown code blocks or any other text.`;
 
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-flash-latest",
+      model: "gemini-flash-latest", // Updated to the stable model reference name
       generationConfig: { responseMimeType: "application/json" } 
     });
 
@@ -184,72 +184,33 @@ Respond ONLY with the JSON object. Do not include markdown code blocks or any ot
   }
 };
 
-// ==================== CONSULTATIONS ====================
-
-// @desc    Create consultation
+// @desc    Create consultation (WITHOUT 'next' to avoid middleware errors)
 // @route   POST /api/clinical/consultations
 // @access  Doctor
-export const createConsultation = async (req, res, next) => {
+export const createConsultation = async (req, res) => {
   try {
-    // 1. Check if patient exists in request body
     if (!req.body.patient) {
-      return res.status(400).json({ message: "Patient ID is required to record a consultation." });
+      return res.status(400).json({ message: "Patient ID is required." });
     }
 
-    // 2. Create the clinical session record document as normal
+    // 1. Create the consultation
     const consultation = await Consultation.create({
       ...req.body,
       doctor: req.user.staffId || req.user._id,
     });
 
-    // 3. Populate information for the immediate frontend return statement
     const populated = await consultation.populate([
       { path: "patient", select: "fullName phone gender bloodGroup" },
       { path: "doctor", select: "fullName department" },
     ]);
 
-    // ⚡ 4. SAFE CASHIER POOL INTERACTION LINK (Isolated from Main Thread)
-    try {
-      if (populated.patient) {
-        // Use the rate submitted by the doctor's form, or fallback to standard 500 KSh
-        const selectedFee = req.body.consultationFee ? Number(req.body.consultationFee) : 500;
+    // 2. Fire and forget the Billing sync
+    // We do NOT use 'await' here so it doesn't hold up the response
+    syncBilling(populated, req.body.consultationFee || 500)
+      .then(() => console.log("✅ Billing sync completed successfully"))
+      .catch((err) => console.error("⚠️ Billing sync background error:", err.message));
 
-        // Look for an existing open invoice balance running for this patient
-        let activeBill = await Billing.findOne({
-          patient: populated.patient._id,
-          paymentStatus: { $in: ["Unpaid", "Partially Paid", "pending", "Pending"] }
-        });
-
-        if (activeBill) {
-          // Append or override the consultation charge link
-          activeBill.consultation = {
-            consultationId: populated._id,
-            fee: selectedFee,
-            status: "Pending"
-          };
-          
-          // Re-trigger total amounts recalculation if your pre-save hook handles it
-          await activeBill.save();
-          console.log(`💵 Balance linked to existing invoice pool for: ${populated.patient.fullName}`);
-        } else {
-          // Construct a completely fresh active billing file instance
-          await Billing.create({
-            patient: populated.patient._id,
-            consultation: {
-              consultationId: populated._id,
-              fee: selectedFee,
-              status: "Pending"
-            },
-            paymentStatus: "Unpaid"
-          });
-          console.log(`💵 Fresh invoice created in cashier pool for: ${populated.patient.fullName}`);
-        }
-      }
-    } catch (billingError) {
-      // If billing setup has a schema mismatch, log it but DO NOT crash the consultation return!
-      console.error("⚠️ Cashier Pool Sync Warning (Consultation saved, but billing link failed):", billingError.message);
-    }
-
+    // 3. Return success immediately
     return res.status(201).json({
       message: "Consultation recorded successfully.",
       consultation: populated,
@@ -257,12 +218,46 @@ export const createConsultation = async (req, res, next) => {
 
   } catch (error) {
     console.error("🔴 Hard Consultation Failure:", error);
-    if (typeof next === "function") {
-      return next(error);
-    }
-    return res.status(400).json({ message: error.message });
+    // Explicitly send the response; do not call next(error)
+    return res.status(500).json({ 
+      message: "Could not process consultation request.", 
+      error: error.message 
+    });
   }
 };
+
+// Helper function outside the controller to handle the background logic
+async function syncBilling(populated, fee) {
+  const patientId = populated.patient._id;
+  const consultationPayload = {
+    consultationId: populated._id,
+    fee: Number(fee),
+    status: "Pending"
+  };
+
+  let activeBill = await Billing.findOne({
+    patient: patientId,
+    $or: [
+      { paymentStatus: { $in: ["Unpaid", "Partially Paid", "pending", "Pending"] } },
+      { status: { $in: ["Unpaid", "Partially Paid", "pending", "Pending"] } }
+    ]
+  });
+
+  if (activeBill) {
+    activeBill.consultation = consultationPayload;
+    if (activeBill.paymentStatus) activeBill.paymentStatus = "Unpaid";
+    if (activeBill.status) activeBill.status = "Unpaid";
+    await activeBill.save();
+  } else {
+    await Billing.create({
+      patient: patientId,
+      consultation: consultationPayload,
+      paymentStatus: "Unpaid",
+      status: "Unpaid",
+      totalAmountDue: fee
+    });
+  }
+}
 
 // @desc    Get single consultation
 // @route   GET /api/clinical/consultations/:id
@@ -329,7 +324,6 @@ export const createPrescription = async (req, res) => {
 
     // 3. 🚀 THE DEPARTMENT BRIDGE: Mirror this order straight into PharmacyRequest!
     if (populated.patient) {
-      // Re-map the medications format array neatly to fit pharmacy.model schemas
       const mappedMedications = Array.isArray(req.body.medications) 
         ? req.body.medications.map(m => ({
             drugName: m.drugName || m.medicine,
@@ -429,7 +423,7 @@ Format your response as JSON:
 
 Respond with JSON only, no additional text or markdown.`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     const clean = responseText.replace(/```json|```/g, "").trim();
@@ -443,35 +437,34 @@ Respond with JSON only, no additional text or markdown.`;
 
 // ==================== ⚡ LAB REQUESTS (WITH AUTOMATED FEES) ====================
 
-// Official Hospital Laboratory Service Fee Menu Table Lookup
 const LAB_FEES_MENU = {
   "Blood Test": 200,
   "Urine Test": 200,
   "Stool Test": 200,
-  "Malaria Test": 150,       // Standard rapid diagnostic test rate
-  "Blood Sugar": 150,        // Point-of-care fingerprick glucose
-  "Full Blood Count": 800,   // Automated cell counter run
+  "Malaria Test": 150,       
+  "Blood Sugar": 150,        
+  "Full Blood Count": 800,   
   "Liver Function Test": 800,
   "Kidney Function Test": 800,
   "Lipid Profile": 800,
   "Culture & Sensitivity": 1200,
   "Thyroid Function": 1200,
-  "HIV Test": 0,             // Free out-patient public health screening
-  "Other": 200               // Baseline miscellaneous default
+  "HIV Test": 0,             
+  "Other": 200               
 };
 
 // @desc    Create lab request with AUTOMATED pricing sync to Cashier Pool
 // @route   POST /api/clinical/lab-requests
 // @access  Doctor
+// src/modules/clinical/clinical.controller.js
+
 export const createLabRequest = async (req, res) => {
   try {
     const { patient, testName, testType, urgency, clinicalNotes, consultation } = req.body;
     const doctorId = req.user.staffId || req.user._id;
 
-    // 1. Resolve test price automatically based on selection type
     const automaticallyResolvedCost = LAB_FEES_MENU[testType] !== undefined ? LAB_FEES_MENU[testType] : 200;
 
-    // 2. Create the lab request record document with the silent backend fee attachment
     const labRequest = await LabRequest.create({
       patient,
       doctor: doctorId,
@@ -484,34 +477,38 @@ export const createLabRequest = async (req, res) => {
       status: "pending"
     });
 
-    // 3. Populate basic references for the client reply body
     const populated = await labRequest.populate([
       { path: "patient", select: "fullName phone" },
       { path: "doctor", select: "fullName department" },
     ]);
 
-    // 4. Synchronize & increment bill dynamically in the centralized Cashier Pool Billing document
-    await Billing.findOneAndUpdate(
-      { patient, status: { $in: ["Unpaid", "Partially Paid", "pending"] } }, // Dynamic alignment with billing status types
-      {
-        $push: {
-          labItems: {
-            labRequestId: populated._id,
-            name: `${testType} (${testName})`,
-            cost: automaticallyResolvedCost,
-          },
-        },
-        $inc: { totalAmountDue: automaticallyResolvedCost },
+    // FIXED QUERY: Use 'paymentStatus' instead of 'status' to find the bill
+   await Billing.findOneAndUpdate(
+  { patient: patient, paymentStatus: { $in: ["Unpaid", "Partially Paid"] } }, 
+  {
+    $push: {
+      labCharges: { 
+        labRequestId: populated._id,
+        testName: `${testType} (${testName})`,
+        cost: automaticallyResolvedCost,
+        status: "Pending"
       },
-      { upsert: true, new: true }
-    );
+    },
+    // Manually increment both the specific counter and the total
+    $inc: { 
+      totalAmountDue: automaticallyResolvedCost,
+      totalAmount: automaticallyResolvedCost // Add this line
+    },
+  },
+  { upsert: true, new: true, setDefaultsOnInsert: true }
+);
 
     res.status(201).json({ 
-      message: "Lab request ordered and standard panel charges synced into Cashier Pool.", 
+      message: "Lab request ordered and charges synced.", 
       labRequest: populated 
     });
   } catch (error) {
-    console.error("Lab creation fee sync logic error:", error);
+    console.error("🔴 Lab Fee Sync Error:", error);
     res.status(400).json({ message: error.message });
   }
 };

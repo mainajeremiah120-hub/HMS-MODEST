@@ -71,7 +71,7 @@ function PendingTab({ onProcess, onDelete, refreshKey }) { // ✅ Added refreshK
                       Process
                     </button>
                   </td>
-                  {(user?.role === 'admin' || user?.role === 'pharmacist') && (
+                  {(user?.role === 'admin' || user?.role === 'lab') && (
                   <td className="px-6 py-4">
                     <button
                       onClick={() => onDelete(r._id, r.patient?.fullName)} // ✅ simplified parameter footprint
