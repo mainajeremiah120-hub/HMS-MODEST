@@ -500,7 +500,7 @@ export const createLabRequest = async (req, res) => {
       totalAmount: automaticallyResolvedCost // Add this line
     },
   },
-  { upsert: true, new: true, setDefaultsOnInsert: true }
+  { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
 );
 
     res.status(201).json({ 
