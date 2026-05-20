@@ -1,5 +1,6 @@
 import PharmacyRequest from './pharmacy.model.js'; 
 import Inventory from './inventory.model.js'; 
+import Billing from '../billing/billing.model.js';
 
 // ==================== 💊 INVENTORY MANAGEMENT ====================
 
@@ -164,6 +165,9 @@ export const dispenseMedication = async (req, res) => {
                 });
             }
 
+            const unitPrice = inventoryItem.sellingPrice || 0;
+            med.price = unitPrice;
+
             // FEFO Sort: Force organize remaining active batches by expiration deadlines (earliest expires first)
             inventoryItem.batches.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
             let requiredQty = parseInt(med.quantity || 1, 10);
@@ -198,6 +202,23 @@ export const dispenseMedication = async (req, res) => {
         pharmacyRequest.dispensedBy = dispensedBy;
         pharmacyRequest.dispensedAt = new Date();
         await pharmacyRequest.save();
+
+        // Create the billing record
+    const totalAmount = pharmacyRequest.medications.reduce((sum, med) => sum + (med.price * med.quantity), 0);
+    const pharmacyBill = new Billing({
+     patient: pharmacyRequest.patient._id,
+     pharmacyCharges: pharmacyRequest.medications.map(med => ({
+        medicine: med.medicine || med.drugName,
+        quantity: med.quantity,
+        price: med.price, // Ensure your pharmacyRequest has price data
+        status: 'Pending'
+    })),
+    paymentStatus: 'Unpaid',
+    totalAmount: totalAmount,
+    department: 'Pharmacy'
+    });
+
+    await pharmacyBill.save();
 
         return res.status(200).json({ message: "Prescription successfully dispensed via FEFO execution tracking!", data: pharmacyRequest });
     } catch (error) {

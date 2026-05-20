@@ -393,9 +393,11 @@ function ConsultationTab({ onConsultationCreated }) {
   );
 }
 
+
 // ==================== PRESCRIPTIONS TAB ====================
 function PrescriptionsTab() {
   const [patientList, setPatientList] = useState([]);
+  const [inventory, setInventory] = useState([]);
   const [interactionResult, setInteractionResult] = useState(null);
   const [interactionLoading, setInteractionLoading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -406,14 +408,34 @@ function PrescriptionsTab() {
     medications: [{ drugName: "", dosage: "", frequency: "", duration: "", instructions: "" }],
   });
 
-  useEffect(() => {
-    const fetchPatients = async () => {
-      const res = await API.get("/patients");
-      setPatientList(res.data);
-    };
-    fetchPatients();
-  }, []);
+useEffect(() => {
+  (async () => {
+    try {
+      // Fetch data sequentially to prevent aggregate failures
+      const patientsRes = await API.get("/patients");
+      const inventoryRes = await API.get("/pharmacy/inventory");
 
+      console.log("Patients Data:", patientsRes.data);
+      console.log("Inventory Data:", inventoryRes.data);
+
+      if (patientsRes?.data) setPatientList(patientsRes.data);
+
+      // Robust inventory handling
+      const invData = inventoryRes.data;
+      // If the data is nested inside an object (common in Express), 
+      // we check for common keys like 'data', 'items', or 'inventory'
+      const finalInventory = Array.isArray(invData) 
+        ? invData 
+        : (invData.data || invData.items || []);
+      
+      setInventory(finalInventory);
+      console.log("Inventory State Set To:", finalInventory);
+
+    } catch (err) {
+      console.error("Data Fetching Error:", err);
+    }
+  })();
+}, []);
   const handleMedChange = (index, e) => {
     const meds = [...formData.medications];
     meds[index][e.target.name] = e.target.value;
@@ -475,6 +497,7 @@ function PrescriptionsTab() {
       <h2 className="text-lg font-semibold text-gray-700 mb-6">Write Prescription</h2>
       {success && <div className="bg-green-100 text-green-700 px-4 py-2 rounded-lg mb-4 text-sm">{success}</div>}
       {error && <div className="bg-red-100 text-red-600 px-4 py-2 rounded-lg mb-4 text-sm">{error}</div>}
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="bg-white rounded-xl shadow p-6">
           <label className="block text-sm font-medium text-gray-700 mb-1">Patient</label>
@@ -498,8 +521,17 @@ function PrescriptionsTab() {
                 )}
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {/* Updated Drug Selection */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Drug Name</label>
+                  <select name="drugName" value={med.drugName} onChange={(e) => handleMedChange(index, e)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <option value="">Select a drug...</option>
+                    {inventory.map((item) => (
+                        <option key={item._id} value={item.itemName}>{item.itemName}</option>
+                    ))}
+                  </select>
+                </div>
                 {[
-                  { label: "Drug Name", name: "drugName", placeholder: "e.g. Paracetamol" },
                   { label: "Dosage", name: "dosage", placeholder: "e.g. 500mg" },
                   { label: "Frequency", name: "frequency", placeholder: "e.g. 3 times daily" },
                   { label: "Duration", name: "duration", placeholder: "e.g. 5 days" },
@@ -516,20 +548,13 @@ function PrescriptionsTab() {
           <button type="button" onClick={handleCheckInteraction} disabled={interactionLoading} className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-orange-600 transition disabled:opacity-50">
             {interactionLoading ? "Checking..." : "⚠️ Check Drug Interactions"}
           </button>
+          
           {interactionResult && (
             <div className={`mt-4 rounded-xl p-4 ${interactionResult.hasInteractions ? "bg-red-50 border border-red-200" : "bg-green-50 border border-green-200"}`}>
               <h4 className={`font-semibold mb-2 ${interactionResult.hasInteractions ? "text-red-700" : "text-green-700"}`}>
                 {interactionResult.hasInteractions ? "⚠️ Drug Interactions Found!" : "✅ No Interactions Found"}
               </h4>
               <p className="text-sm text-gray-700">{interactionResult.summary}</p>
-              {interactionResult.interactions?.map((interaction, i) => (
-                <div key={i} className="mt-2 bg-white rounded-lg p-3 text-sm">
-                  <p className="font-medium">{interaction.drugs?.join(" + ")}</p>
-                  <p className="text-red-600">Severity: {interaction.severity}</p>
-                  <p className="text-gray-600">{interaction.effect}</p>
-                  <p className="text-blue-600">Management: {interaction.management}</p>
-                </div>
-              ))}
             </div>
           )}
         </div>
@@ -540,7 +565,6 @@ function PrescriptionsTab() {
     </div>
   );
 }
-
 // ==================== LAB REQUESTS TAB ====================
 function LabTab({ activeConsultationId }) {
   const [patientList, setPatientList] = useState([]);
