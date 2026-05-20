@@ -50,6 +50,7 @@ function Billing() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center border-b border-gray-200 pb-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Cashier Counter</h1>
@@ -66,6 +67,7 @@ function Billing() {
       {success && <div className="bg-green-100 text-green-700 border border-green-200 px-4 py-3 rounded-xl text-sm font-medium">{success}</div>}
       {error && <div className="bg-red-100 text-red-700 border border-red-200 px-4 py-3 rounded-xl text-sm font-medium">{error}</div>}
 
+      {/* Main Table */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="p-5 border-b border-gray-100 bg-gray-50/70">
           <h2 className="font-semibold text-gray-700 flex items-center gap-2">
@@ -79,7 +81,7 @@ function Billing() {
         {loading ? (
           <div className="p-12 text-center text-gray-500 font-medium">Loading cash records...</div>
         ) : billingPool.length === 0 ? (
-          <div className="p-12 text-center text-gray-400">🎉 Visual clearing complete! No pending patient balances currently in queue.</div>
+          <div className="p-12 text-center text-gray-400">🎉 No pending patient balances currently in queue.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
@@ -87,110 +89,96 @@ function Billing() {
                 <tr>
                   <th className="px-6 py-3.5">Patient Name</th>
                   <th className="px-6 py-3.5">Contact Line</th>
-                  <th className="px-6 py-3.5">Unpaid Breakdowns</th>
                   <th className="px-6 py-3.5 text-right">Total Amount Due</th>
                   <th className="px-6 py-3.5 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {billingPool.map((bill) => {
-                  const hasConsultation = bill.consultation?.status === "Pending";
-                  const pendingLabsCount = bill.labCharges?.filter(l => l.status === "Pending").length || 0;
-                  const pendingPharmCount = bill.pharmacyCharges?.filter(p => p.status === "Pending").length || 0;
-
-                  return (
-                    <tr key={bill._id} className="hover:bg-gray-50/80 transition">
-                      <td className="px-6 py-4 font-semibold text-gray-800">{bill.patient?.fullName || "Walk-In / Unknown"}</td>
-                      <td className="px-6 py-4 text-gray-600">{bill.patient?.phone || "N/A"}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1.5 text-xs">
-                          {hasConsultation && <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">🩺 Consult</span>}
-                          {pendingLabsCount > 0 && <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded font-medium">🧪 Labs ({pendingLabsCount})</span>}
-                          {pendingPharmCount > 0 && <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-medium">💊 Meds ({pendingPharmCount})</span>}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right font-bold text-gray-900 text-base">KSh {bill.totalAmount?.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-center">
-                        <button
-                          onClick={() => {
-                            setSelectedInvoice(bill);
-                            setPaymentMethod("Cash");
-                          }}
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition"
-                        >
-                          Collect Payment
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {billingPool.map((bill) => (
+                  <tr key={bill._id} className="hover:bg-gray-50/80 transition">
+                    <td className="px-6 py-4 font-semibold text-gray-800">{bill.patient?.fullName || "Walk-In"}</td>
+                    <td className="px-6 py-4 text-gray-600">{bill.patient?.phone || "N/A"}</td>
+                    <td className="px-6 py-4 text-right font-bold text-gray-900 text-base">KSh {bill.totalAmount?.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => setSelectedInvoice(bill)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition"
+                      >
+                        Collect Payment
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
+      {/* Premium Receipt Modal */}
       {selectedInvoice && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          {/* Main print-area container for the receipt */}
-          <div className="print-area bg-white rounded-2xl shadow-xl max-w-sm w-full overflow-hidden p-6">
-            
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="print-area bg-white w-full max-w-sm overflow-hidden shadow-2xl border border-gray-200">
             {/* Header */}
-            <div className="text-center border-b-2 border-gray-900 pb-4 mb-4">
-              <h3 className="font-black text-lg uppercase tracking-wider">HMS</h3>
-              <p className="text-[10px] text-gray-500">Official Payment Receipt</p>
+            <div className="bg-gray-900 text-white p-6 text-center">
+              <h3 className="font-black text-xl uppercase tracking-[0.2em]">Modest Hospital</h3>
+              <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Official Medical Receipt</p>
             </div>
 
-            {/* Patient Details */}
-            <div className="text-xs mb-4">
-              <p><strong>Patient:</strong> {selectedInvoice.patient?.fullName}</p>
-              <p><strong>Date:</strong> {new Date().toLocaleDateString()}</p>
-            </div>
-
-            {/* Receipt Body */}
-            <div className="border-t border-b border-dashed border-gray-400 py-3 space-y-2 mb-4">
-              {selectedInvoice.consultation?.status === "Pending" && (
-                <div className="flex justify-between text-xs"><span>Consultation</span><span>KSh {selectedInvoice.consultation.fee}</span></div>
-              )}
-              {selectedInvoice.labCharges?.map((lab, index) => (
-                <div key={index} className="flex justify-between text-xs"><span>{lab.testName}</span><span>KSh {lab.cost}</span></div>
-              ))}
-              {selectedInvoice.pharmacyCharges?.map((pharma, index) => (
-                <div key={index} className="flex justify-between text-xs"><span>{pharma.drugName} (x{pharma.quantity})</span><span>KSh {pharma.cost}</span></div>
-              ))}
-            </div>
-
-            {/* Total */}
-            <div className="flex justify-between font-bold text-sm mb-6">
-              <span>TOTAL</span>
-              <span>KSh {selectedInvoice.totalAmount?.toLocaleString()}</span>
-            </div>
-
-            {/* Footer */}
-            <div className="text-center text-[9px] text-gray-500 mb-6">
-              <p>Thank you for choosing our services.</p>
-              <p>Please keep this receipt for your records.</p>
-            </div>
-
-            {/* Controls (no-print) */}
-            <form onSubmit={handleProcessPayment} className="no-print space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Select Payment Method</label>
-                <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs">
-                  <option value="Cash">Cash Settlement</option>
-                  <option value="M-Pesa">Safaricom M-Pesa</option>
-                  <option value="Insurance">Insurance Cover</option>
-                </select>
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-4 mb-6 border-b border-gray-100 pb-4">
+                <div>
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Patient</p>
+                  <p className="text-sm font-semibold text-gray-900">{selectedInvoice.patient?.fullName}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Date</p>
+                  <p className="text-sm font-semibold text-gray-900">{new Date().toLocaleDateString()}</p>
+                </div>
               </div>
 
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setSelectedInvoice(null)} className="flex-1 border border-gray-300 py-2 rounded-lg text-xs font-semibold hover:bg-gray-50">Cancel</button>
-                <button type="button" onClick={() => window.print()} className="flex-1 bg-gray-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-gray-700">Print</button>
-                <button type="submit" disabled={processingPayment} className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-xs font-bold hover:bg-blue-700">
-                  {processingPayment ? "..." : "Confirm"}
+              {/* Service Breakdown */}
+              <div className="space-y-3 mb-6">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Service Breakdown</p>
+                {selectedInvoice.consultation?.status === "Pending" && (
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Consultation Fee</span>
+                    <span className="font-medium text-gray-900">KSh {selectedInvoice.consultation.fee.toLocaleString()}</span>
+                  </div>
+                )}
+                {selectedInvoice.labCharges?.map((lab, i) => (
+                  <div key={i} className="flex justify-between text-sm text-gray-600">
+                    <span>{lab.testName}</span>
+                    <span className="font-medium text-gray-900">KSh {lab.cost.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg flex justify-between items-center border border-gray-100 mb-8">
+                <span className="text-xs font-black uppercase tracking-wider text-gray-500">Total Due</span>
+                <span className="text-2xl font-black text-blue-700">KSh {selectedInvoice.totalAmount?.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Controls (No-Print) */}
+            <div className="no-print p-6 pt-0 space-y-3">
+              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm font-medium">
+                <option value="Cash">Cash Settlement</option>
+                <option value="M-Pesa">Safaricom M-Pesa</option>
+                <option value="Insurance">Insurance Cover</option>
+              </select>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setSelectedInvoice(null)} className="py-3 rounded-lg text-xs font-bold text-gray-500 hover:bg-gray-100">Cancel</button>
+                <button onClick={() => window.print()} className="py-3 bg-gray-900 text-white rounded-lg text-xs font-bold hover:bg-black transition">Print Receipt</button>
+              </div>
+              
+              <form onSubmit={handleProcessPayment}>
+                <button type="submit" disabled={processingPayment} className="w-full bg-blue-600 text-white py-3 rounded-lg text-sm font-black uppercase tracking-wider hover:bg-blue-700 transition shadow-lg">
+                  {processingPayment ? "Processing..." : "Confirm & Settle"}
                 </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
