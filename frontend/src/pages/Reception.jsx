@@ -717,7 +717,7 @@ function ReportTab() {
           onClick={handlePrint}
           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-medium"
         >
-          🖨️ Print Report
+          🖨️ Print / Save as PDF
         </button>
       </div>
 
@@ -782,19 +782,21 @@ function Reception() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Reception</h1>
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition ${
-              activeTab === tab ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="no-print">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Reception</h1>
+        <div className="flex gap-2 mb-6 border-b border-gray-200">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition ${
+                activeTab === tab ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
       {activeTab === "Patients" && <PatientsTab />}
       {activeTab === "Appointments" && <AppointmentsTab />}

@@ -2,25 +2,164 @@
 @tailwind components;
 @tailwind utilities;
 @media print {
+  /* Page size and margin control to maximize printable height */
+  @page {
+    size: auto;
+    margin: 8mm 12mm 8mm 12mm !important;
+  }
+
+  /* Hide all non-printing elements completely to collapse document height */
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+
+  /* Reset html and body to auto-calculate height and prevent scrolling/overflow page breaks */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide everything by default using visibility */
   body * {
     visibility: hidden;
   }
 
+  /* Show only the print area and its contents */
   .print-area,
   .print-area * {
     visibility: visible;
   }
 
+  /* Position print-area cleanly at top-left of printable page and compress globally */
   .print-area {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    padding: 40px;
-    background: white;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    box-sizing: border-box !important;
+    background: white !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
   }
 
-  .no-print {
-    display: none !important;
+  /* Compress titles, headers, and spacing */
+  .print-area h1,
+  .print-area .text-3xl,
+  .print-area .text-2xl {
+    font-size: 16px !important;
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .print-area h2,
+  .print-area .text-xl,
+  .print-area .text-lg {
+    font-size: 13px !important;
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .print-area h3,
+  .print-area .text-md {
+    font-size: 11px !important;
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .print-area p,
+  .print-area span,
+  .print-area div {
+    margin-top: 1px !important;
+    margin-bottom: 1px !important;
+  }
+
+  /* Compact grid columns and force columns on stats cards grid */
+  .print-area .grid-cols-1.md\:grid-cols-3 {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .print-area .grid {
+    gap: 8px !important;
+  }
+
+  /* Compress stats cards padding, shadow and styles in print mode */
+  .print-area .rounded-xl.shadow.p-6,
+  .print-area .rounded-xl.p-6 {
+    padding: 6px 10px !important;
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* High density table print layouts */
+  .print-area table {
+    font-size: 10px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .print-area th,
+  .print-area td {
+    padding: 3px 6px !important;
+  }
+
+  /* Compress padding and margin utilities inside printable areas */
+  .print-area .mt-8,
+  .print-area .mt-10 {
+    margin-top: 10px !important;
+  }
+
+  .print-area .pt-6 {
+    padding-top: 6px !important;
+  }
+
+  .print-area .pb-6 {
+    padding-bottom: 6px !important;
+  }
+
+  .print-area .mb-6,
+  .print-area .mb-8 {
+    margin-bottom: 6px !important;
+  }
+
+  .print-area .gap-6 {
+    gap: 8px !important;
+  }
+
+  /* Ensure modal backdrop and layout container collapse nicely */
+  .fixed.inset-0 {
+    position: absolute !important;
+    background: transparent !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Reset modal content/borders to avoid extra borders or margins on print */
+  .bg-white.rounded-2xl.shadow-xl,
+  .bg-white.p-8 {
+    border: none !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 }

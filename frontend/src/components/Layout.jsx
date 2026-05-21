@@ -5,9 +5,13 @@ import { Outlet } from "react-router-dom";
 function Layout() {
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <div className="no-print">
+        <Sidebar />
+      </div>
       <div className="flex-1 flex flex-col">
-        <Navbar />
+        <div className="no-print">
+          <Navbar />
+        </div>
         <main className="p-6 bg-gray-100 flex-1">
           <Outlet />
         </main>

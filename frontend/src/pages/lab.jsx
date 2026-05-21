@@ -601,7 +601,7 @@ function LabReportModal({ request, onClose }) {
           <h2 className="text-lg font-bold text-gray-800">Lab Report</h2>
           <div className="flex gap-2">
             <button onClick={handlePrint} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition">
-              🖨️ Print Report
+              🖨️ Print / Save as PDF
             </button>
             <button onClick={onClose} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition">
               Close
@@ -769,49 +769,51 @@ function Lab() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Laboratory</h1>
+      <div className="no-print">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Laboratory</h1>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition ${
-              activeTab === tab.id ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 border-b border-gray-200">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 text-sm font-medium rounded-t-lg transition ${
+                activeTab === tab.id ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === "pending" && (
+          <PendingTab 
+            refreshKey={refreshKey}
+            onProcess={handleProcess} 
+            onDelete={handleDeleteLabRequest} 
+          />
+        )}
+        {activeTab === "processing" && (
+          <ProcessingTab 
+            refreshKey={refreshKey}
+            onEnterResults={handleEnterResults} 
+          />
+        )}
+        {activeTab === "completed" && (
+          <CompletedTab 
+            refreshKey={refreshKey}
+            onViewReport={handleViewReport} 
+            onDelete={handleDeleteLabRequest} 
+          />
+        )}
+        {activeTab === "history" && (
+          <PatientHistoryTab 
+            onViewReport={handleViewReport} 
+          />
+        )}
       </div>
-
-      {/* Tab Content */}
-      {activeTab === "pending" && (
-        <PendingTab 
-          refreshKey={refreshKey}
-          onProcess={handleProcess} 
-          onDelete={handleDeleteLabRequest} 
-        />
-      )}
-      {activeTab === "processing" && (
-        <ProcessingTab 
-          refreshKey={refreshKey}
-          onEnterResults={handleEnterResults} 
-        />
-      )}
-      {activeTab === "completed" && (
-        <CompletedTab 
-          refreshKey={refreshKey}
-          onViewReport={handleViewReport} 
-          onDelete={handleDeleteLabRequest} 
-        />
-      )}
-      {activeTab === "history" && (
-        <PatientHistoryTab 
-          onViewReport={handleViewReport} 
-        />
-      )}
 
       {/* Result Entry Modal */}
       {showResultModal && selectedRequest && (
