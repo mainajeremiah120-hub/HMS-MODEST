@@ -188,6 +188,7 @@ function Billing() {
                 <th className="px-6 py-3">Paid Amount</th>
                 <th className="px-6 py-3">Method</th>
                 <th className="px-6 py-3">Date Settled</th>
+                <th className="px-6 py-3 text-center">Receipt</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -209,11 +210,21 @@ function Billing() {
                       ))}
                     </div>
                   </td>
+
                   <td className="px-6 py-4 font-bold text-green-600">KSh {bill.totalAmount?.toLocaleString()}</td>
                   <td className="px-6 py-4">{bill.paymentMethod}</td>
                   <td className="px-6 py-4">{new Date(bill.updatedAt).toLocaleDateString()}</td>
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={() => setSelectedInvoice(bill)}
+                      className="text-blue-600 hover:text-blue-800 transition"
+                    >
+                      🖨️
+                    </button>
+                  </td>
                 </tr>
               ))}
+
             </tbody>
           </table>
         </div>
