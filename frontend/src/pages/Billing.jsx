@@ -6,7 +6,9 @@ function Billing() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  
+  const [history, setHistory] = useState([]); // Add this
+  const [activeTab, setActiveTab] = useState("pending"); // Add this
+
   // Modal & Processing State
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("Cash");
@@ -28,6 +30,27 @@ function Billing() {
 
   useEffect(() => {
     fetchBillingPool();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [poolRes, historyRes] = await Promise.all([
+        API.get("/billing/pool"),
+        API.get("/billing/history")
+      ]);
+      setBillingPool(poolRes.data);
+      setHistory(historyRes.data);
+    } catch (err) {
+      setError("Failed to load billing data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Ensure your useEffect calls this instead
+  useEffect(() => {
+    fetchData();
   }, []);
 
   // Handle invoice clearing form submission
@@ -70,12 +93,25 @@ function Billing() {
       {/* Alert Banners */}
       {success && <div className="bg-green-100 text-green-700 border border-green-200 px-4 py-3 rounded-xl text-sm font-medium">{success}</div>}
       {error && <div className="bg-red-100 text-red-700 border border-red-200 px-4 py-3 rounded-xl text-sm font-medium">{error}</div>}
-
+      <div className="flex bg-gray-100 p-1 rounded-lg w-fit mb-4">
+        <button
+          onClick={() => setActiveTab("pending")}
+          className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === "pending" ? "bg-white shadow" : "text-gray-500"}`}
+        >
+          Pending ({billingPool.length})
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          className={`px-4 py-2 rounded-md text-sm font-medium ${activeTab === "history" ? "bg-white shadow" : "text-gray-500"}`}
+        >
+          History
+        </button>
+      </div>
       {/* Active Pool Overview Table */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="p-5 border-b border-gray-100 bg-gray-50/70">
           <h2 className="font-semibold text-gray-700 flex items-center gap-2">
-            📋 Pending Invoices 
+            📋 Pending Invoices
             <span className="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-bold">
               {billingPool.length} Waiting
             </span>

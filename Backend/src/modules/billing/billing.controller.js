@@ -15,6 +15,22 @@ export const getCashierPool = async (req, res) => {
   }
 };
 
+// @desc    Get all completed (paid) payment records for history
+// @route   GET /api/billing/history
+// @access  Cashier, Admin, Reception
+export const getPaymentHistory = async (req, res) => {
+  try {
+    const history = await Billing.find({ paymentStatus: "Paid" })
+      .populate("patient", "fullName phone")
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json(history);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching history", error: error.message });
+  }
+};
+
+
 // @desc    Process payment and clear pending balances for an invoice
 // @route   PUT /api/billing/:id/pay
 // @access  Cashier, Admin, Reception
