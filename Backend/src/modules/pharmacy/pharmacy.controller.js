@@ -182,23 +182,37 @@ export const dispenseMedication = async (req, res) => {
         pharmacyRequest.dispensedAt = new Date();
         await pharmacyRequest.save();
 
-        const totalAmount = pharmacyRequest.medications.reduce((sum, med) => sum + (med.price * med.quantity), 0);
-        
-        const pharmacyBill = new Billing({
+        const mappedPharmacyCharges = pharmacyRequest.medications.map(med => ({
+            prescriptionId: pharmacyRequest._id,
+            drugName: med.medicine || med.drugName,
+            quantity: med.quantity,
+            cost: med.price,
+            status: 'Pending'
+        }));
+
+        let activeBill = await Billing.findOne({
             patient: pharmacyRequest.patient._id,
-            pharmacyCharges: pharmacyRequest.medications.map(med => ({
-                drugName: med.medicine || med.drugName,
-                quantity: med.quantity,
-                cost: med.price,
-                status: 'Pending'
-            })),
-            paymentStatus: 'Unpaid',
-            paymentMethod: 'Cash',
-            totalAmount: totalAmount,
-            department: 'Pharmacy'
+            paymentStatus: { $in: ["Unpaid", "Partially Paid"] }
         });
 
-        await pharmacyBill.save();
+        if (activeBill) {
+            // Consolidation: append to existing active unpaid bill
+            activeBill.pharmacyCharges.push(...mappedPharmacyCharges);
+            await activeBill.save();
+            console.log(`Synced pharmacy charges to existing active bill for patient: ${pharmacyRequest.patient.fullName}`);
+        } else {
+            // Create a new billing record if none exists
+            const totalAmount = pharmacyRequest.medications.reduce((sum, med) => sum + (med.price * med.quantity), 0);
+            const pharmacyBill = new Billing({
+                patient: pharmacyRequest.patient._id,
+                pharmacyCharges: mappedPharmacyCharges,
+                paymentStatus: 'Unpaid',
+                paymentMethod: 'Cash',
+                totalAmount: totalAmount
+            });
+            await pharmacyBill.save();
+            console.log(`Created new billing record for patient: ${pharmacyRequest.patient.fullName}`);
+        }
 
         return res.status(200).json({ message: "Prescription successfully dispensed!", data: pharmacyRequest });
     } catch (error) {

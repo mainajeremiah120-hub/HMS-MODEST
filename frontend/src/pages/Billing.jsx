@@ -153,7 +153,7 @@ function Billing() {
                 </div>
               ) : billingPool.length === 0 ? (
                 <div className="p-12 text-center text-gray-400">
-                  🎉 No pending patient balances currently in queue.
+                   No pending patient balances currently in queue.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
