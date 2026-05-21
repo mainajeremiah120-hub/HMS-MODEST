@@ -9,18 +9,18 @@ const adminLinks = [
   { path: "/reception", label: "Reception", icon: "🏨" },
   { path: "/lab", label: "Laboratory", icon: "🧪" },
   { path: "/pharmacy", label: "Pharmacy", icon: "💊" },
-  { path: "/billing", label: "Billing / Cashier", icon: "💵" }, // 👈 Added here
+  { path: "/billing", label: "Billing / Cashier", icon: "💵" }, 
 ];
 
 const receptionLinks = [
   { path: "/reception", label: "Reception", icon: "🏠" },
   { path: "/patients", label: "Patients", icon: "🏥" },
   { path: "/appointments", label: "Appointments", icon: "📅" },
-  { path: "/billing", label: "Billing / Cashier", icon: "💵" }, // 👈 Added here
+  { path: "/billing", label: "Billing / Cashier", icon: "💵" }, 
 ];
 
 const cashierLinks = [
-  { path: "/billing", label: "Billing / Cashier", icon: "💵" }, // 👈 Added for Cashier role
+  { path: "/billing", label: "Billing / Cashier", icon: "💵" }, 
 ];
 
 const doctorLinks = [

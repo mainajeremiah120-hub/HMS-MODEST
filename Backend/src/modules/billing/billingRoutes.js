@@ -5,7 +5,7 @@ const router = express.Router();
 
 // Apply global middleware rules for the module
 router.use(protect);
-router.use(authorizeRoles("admin", "cashier", "reception"));
+router.use(authorizeRoles("admin", "cashier", "receptionist"));
 
 // Endpoints
 router.get("/pool", getCashierPool);
