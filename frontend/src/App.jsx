@@ -10,6 +10,7 @@ import Clinical from './pages/Clinical'
 import Lab from './pages/Lab'
 import Pharmacy from './pages/Pharmacy'
 import Billing from "./pages/Billing";
+import Revenue from "./pages/revenue";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/lab" element={<Lab />} /> 
         <Route path="/pharmacy" element={<Pharmacy />} />
         <Route path="/billing" element={<Billing />} />
+        <Route path="/revenue" element={<Revenue />} />
       </Route>
     </Routes>
   )
