@@ -183,7 +183,6 @@ Respond ONLY with the JSON object. Do not include markdown code blocks or any ot
     res.status(500).json({ message: error.message });
   }
 };
-
 // @desc    Create consultation (WITHOUT 'next' to avoid middleware errors)
 // @route   POST /api/clinical/consultations
 // @access  Doctor
