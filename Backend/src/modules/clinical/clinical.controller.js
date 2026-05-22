@@ -422,7 +422,7 @@ Format your response as JSON:
 
 Respond with JSON only, no additional text or markdown.`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     const clean = responseText.replace(/```json|```/g, "").trim();
