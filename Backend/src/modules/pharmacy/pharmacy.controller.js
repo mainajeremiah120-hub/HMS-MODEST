@@ -1,5 +1,5 @@
-import PharmacyRequest from './pharmacy.model.js'; 
-import Inventory from './inventory.model.js'; 
+import PharmacyRequest from './pharmacy.model.js';
+import Inventory from './inventory.model.js';
 import Billing from '../billing/billing.model.js';
 
 // ==================== 💊 INVENTORY MANAGEMENT ====================
@@ -127,7 +127,7 @@ export const cancelPharmacyRequest = async (req, res) => {
 export const deletePharmacyRequest = async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedRequest = await PharmacyRequest.findByIdAndDelete(id); 
+        const deletedRequest = await PharmacyRequest.findByIdAndDelete(id);
         if (!deletedRequest) return res.status(404).json({ success: false, message: "Prescription not found." });
         return res.status(200).json({ success: true, message: "Prescription successfully removed." });
     } catch (err) {
@@ -151,7 +151,7 @@ export const dispenseMedication = async (req, res) => {
         for (const med of pharmacyRequest.medications) {
             const TargetDrugName = med.drugName || med.medicine;
             const inventoryItem = await Inventory.findOne({ itemName: new RegExp(`^${TargetDrugName}$`, 'i') });
-            
+
             if (!inventoryItem) return res.status(400).json({ message: `Aborted. "${TargetDrugName}" is missing.` });
 
             med.price = inventoryItem.sellingPrice || 0;
@@ -218,5 +218,27 @@ export const dispenseMedication = async (req, res) => {
     } catch (error) {
         console.error("Dispense engine error:", error);
         return res.status(500).json({ message: "Dispensing failed: " + error.message });
+    }
+};
+
+// pharmacy.controller.js
+export const deleteDispensationLog = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // 1. Check if the ID is valid
+        if (!id) return res.status(400).json({ message: "ID is required" });
+
+        // 2. Perform the delete (Ensure 'DispensationLog' is the correct model name)
+        const deletedLog = await PharmacyRequest.findByIdAndDelete(id);        
+        if (!deletedLog) {
+            return res.status(404).json({ message: "Log not found" });
+        }
+        
+        return res.status(200).json({ message: "Log deleted successfully" });
+    } catch (error) {
+        // 3. Log the error in your terminal to see exactly what crashed
+        console.error("Backend Delete Error:", error); 
+        return res.status(500).json({ message: "Server error: " + error.message });
     }
 };

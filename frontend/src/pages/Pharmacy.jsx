@@ -1,11 +1,29 @@
 import { useState, useEffect } from "react";
-import API from "../api/axios"; 
+import API from "../api/axios";
 
 // ==================== 🕒 DISPENSING HISTORY TAB ====================
 function DispensingHistoryTab() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [logs, setLogs] = useState([]);
+
+const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this log?")) {
+      try {
+        // Change the URL to match the backend route for requests
+        await API.delete(`/pharmacy/requests/${id}`);
+        
+        // Update the 'history' state, not 'logs'
+        setHistory(history.filter((log) => log._id !== id));
+        
+        alert("Log deleted successfully.");
+      } catch (error) {
+        console.error("Failed to delete log:", error);
+        alert("Error: " + (error.response?.data?.message || "Could not delete"));
+      }
+    }
+  };
 
   const fetchHistory = async () => {
     try {
@@ -13,7 +31,7 @@ function DispensingHistoryTab() {
       setError(null);
       // Hits router.get('/requests/completed')
       const res = await API.get("/pharmacy/requests/completed");
-      
+
       // Safety guards to handle raw arrays or normalized { success: true, data: [...] } wrapper payloads
       if (res.data && Array.isArray(res.data.data)) {
         setHistory(res.data.data);
@@ -69,6 +87,7 @@ function DispensingHistoryTab() {
                 <th className="px-6 py-3">Medications Issued</th>
                 <th className="px-6 py-3">Dispensed At</th>
                 <th className="px-6 py-3">Payment Lifecycle Status</th>
+                <th className="px-6 py-3">Delete</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -89,6 +108,15 @@ function DispensingHistoryTab() {
                     <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 capitalize">
                       {log?.paymentStatus || "completed"}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <button
+                      onClick={() => handleDelete(log?._id)}
+                      className="text-red-600 hover:text-red-800 font-bold transition-colors"
+                      title="Delete record"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -111,7 +139,7 @@ function PrescriptionQueueTab() {
       setLoading(true);
       setError(null);
       const res = await API.get("/pharmacy/requests?status=pending");
-      
+
       if (res.data && Array.isArray(res.data)) {
         setPrescriptions(res.data);
       } else if (res.data && Array.isArray(res.data.data)) {
@@ -134,19 +162,19 @@ function PrescriptionQueueTab() {
   const handleDispense = async (prescriptionId) => {
     try {
       const currentUser = JSON.parse(localStorage.getItem("user"));
-      const userId = currentUser?._id || currentUser?.id; 
+      const userId = currentUser?._id || currentUser?.id;
 
       if (!userId) {
         alert("Error: You must be logged in to dispense medications.");
         return;
       }
 
-      await API.put(`/pharmacy/requests/${prescriptionId}/dispense`, { 
-        dispensedBy: userId 
+      await API.put(`/pharmacy/requests/${prescriptionId}/dispense`, {
+        dispensedBy: userId
       });
 
       alert("Dispensed successfully! Inventory updated via FEFO strategy.");
-      fetchQueue(); 
+      fetchQueue();
     } catch (err) {
       console.error("Dispensing backend error payload:", err.response?.data);
       const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || "Unknown server error";
@@ -212,7 +240,7 @@ function PrescriptionQueueTab() {
                   <tr key={p?._id || Math.random()} className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium">{patientName}</td>
                     <td className="px-6 py-4 text-gray-600">
-                      {Array.isArray(p?.medications) 
+                      {Array.isArray(p?.medications)
                         ? p.medications.map(m => `${m?.drugName || m?.medicine || "Unknown Medicine"} (${m?.dosage || "N/A"}) x${m?.quantity || 1}`).join(", ")
                         : "No medications listed"}
                     </td>
@@ -220,15 +248,15 @@ function PrescriptionQueueTab() {
                       {p?.createdAt ? new Date(p.createdAt).toLocaleDateString() : "Today"}
                     </td>
                     <td className="px-6 py-4 flex items-center justify-center gap-2">
-                      <button 
+                      <button
                         onClick={() => handleDispense(p?._id)}
                         className="bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 transition"
                       >
                         Dispense
                       </button>
-                      
+
                       {/* ✅ NEW: Cancel / Delete Queue Button */}
-                      <button 
+                      <button
                         onClick={() => handleCancelRequest(p?._id, patientName)}
                         className="bg-red-50 text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-red-600 hover:text-white transition"
                         title="Cancel Order"
@@ -252,10 +280,10 @@ function InventoryTab({ userRole }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const [formData, setFormData] = useState({
     itemName: "",
-    itemType: "medicine", 
+    itemType: "medicine",
     batchNumber: "",
     quantity: "",
     sellingPrice: "",
@@ -303,7 +331,7 @@ function InventoryTab({ userRole }) {
       await API.post("/pharmacy/inventory", payload);
       alert("Stock batch added successfully!");
       setIsModalOpen(false);
-      
+
       setFormData({
         itemName: "",
         itemType: "medicine",
@@ -313,7 +341,7 @@ function InventoryTab({ userRole }) {
         reorderLevel: "10",
         expiryDate: ""
       });
-      
+
       fetchInventory();
     } catch (err) {
       alert("Error saving stock: " + (err.response?.data?.message || err.message));
@@ -325,7 +353,7 @@ function InventoryTab({ userRole }) {
       try {
         await API.delete(`/pharmacy/inventory/${itemId}`);
         alert("Item deleted successfully!");
-        fetchInventory(); 
+        fetchInventory();
       } catch (err) {
         alert("Delete failed: " + (err.response?.data?.message || err.message));
       }
@@ -337,8 +365,8 @@ function InventoryTab({ userRole }) {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-semibold text-gray-700">Drug Inventory Catalog</h2>
         {canAddDrug && (
-          <button 
-            onClick={() => setIsModalOpen(true)} 
+          <button
+            onClick={() => setIsModalOpen(true)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2 text-sm font-medium"
           >
             <span className="font-bold">+</span> Restock / New Batch
@@ -376,15 +404,14 @@ function InventoryTab({ userRole }) {
                     <td className="px-6 py-4 text-gray-600 capitalize">{drug.itemType}</td>
                     <td className="px-6 py-4 font-bold text-gray-700">{drug.totalStock}</td>
                     <td className="px-6 py-4 text-gray-600 font-medium">
-                        KES {drug.sellingPrice || drug.batches?.[0]?.sellingPrice || "0"}
+                      KES {drug.sellingPrice || drug.batches?.[0]?.sellingPrice || "0"}
                     </td>
                     <td className="px-6 py-4 text-gray-500">{drug.reorderLevel}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        drug.totalStock <= drug.reorderLevel
-                          ? "bg-red-100 text-red-700"
-                          : "bg-green-100 text-green-700"
-                      }`}>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${drug.totalStock <= drug.reorderLevel
+                        ? "bg-red-100 text-red-700"
+                        : "bg-green-100 text-green-700"
+                        }`}>
                         {drug.totalStock <= drug.reorderLevel ? "Low Stock" : "In Stock"}
                       </span>
                     </td>
@@ -412,11 +439,11 @@ function InventoryTab({ userRole }) {
             <form onSubmit={handleAddDrug} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Drug / Medicine Name</label>
-                <input type="text" required placeholder="e.g. Amoxicillin 500mg" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.itemName} onChange={(e) => setFormData({...formData, itemName: e.target.value})} />
+                <input type="text" required placeholder="e.g. Amoxicillin 500mg" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.itemName} onChange={(e) => setFormData({ ...formData, itemName: e.target.value })} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Item Category Type</label>
-                <select className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.itemType} onChange={(e) => setFormData({...formData, itemType: e.target.value})}>
+                <select className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.itemType} onChange={(e) => setFormData({ ...formData, itemType: e.target.value })}>
                   <option value="medicine">Medicine</option>
                   <option value="supply">Medical Supply</option>
                   <option value="equipment">Equipment</option>
@@ -425,26 +452,26 @@ function InventoryTab({ userRole }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Batch Number</label>
-                  <input type="text" required placeholder="e.g. BATCH-2026" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.batchNumber} onChange={(e) => setFormData({...formData, batchNumber: e.target.value})} />
+                  <input type="text" required placeholder="e.g. BATCH-2026" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.batchNumber} onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Quantity (Units)</label>
-                  <input type="number" required placeholder="100" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.quantity} onChange={(e) => setFormData({...formData, quantity: e.target.value})} />
+                  <input type="number" required placeholder="100" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.quantity} onChange={(e) => setFormData({ ...formData, quantity: e.target.value })} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price (KES)</label>
-                  <input type="number" required placeholder="120" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.sellingPrice} onChange={(e) => setFormData({...formData, sellingPrice: e.target.value})} />
+                  <input type="number" required placeholder="120" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.sellingPrice} onChange={(e) => setFormData({ ...formData, sellingPrice: e.target.value })} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Reorder Minimum</label>
-                  <input type="number" placeholder="10" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.reorderLevel} onChange={(e) => setFormData({...formData, reorderLevel: e.target.value})} />
+                  <input type="number" placeholder="10" className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.reorderLevel} onChange={(e) => setFormData({ ...formData, reorderLevel: e.target.value })} />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">FEFO Expiration Expiry Date</label>
-                <input type="date" required className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.expiryDate} onChange={(e) => setFormData({...formData, expiryDate: e.target.value})} />
+                <input type="date" required className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" value={formData.expiryDate} onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })} />
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm transition">Discard</button>
@@ -483,15 +510,14 @@ export default function Pharmacy() {
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold text-gray-800 mb-8">Pharmacy Department Management Workspace</h1>
-        
+
         <div className="flex space-x-1 mb-8 bg-gray-200 p-1 rounded-xl w-fit">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-6 py-2.5 rounded-lg text-sm font-medium transition ${
-                activeTab === tab.id ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
-              }`}
+              className={`flex items-center space-x-2 px-6 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === tab.id ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                }`}
             >
               <span>{tab.icon}</span>
               <span>{tab.label}</span>
