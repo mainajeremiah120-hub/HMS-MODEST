@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 
+
 const adminLinks = [
   { path: "/dashboard", label: "Dashboard", icon: "🏠" },
   { path: "/staff", label: "Staff", icon: "👨‍⚕️" },
@@ -63,21 +64,26 @@ function Sidebar() {
   };
 
   return (
-    <div className="w-64 min-h-screen bg-blue-800 text-white flex flex-col">
-      {/* Logo */}
-      <div className="px-6 py-5 border-b border-blue-700">
-        <h1 className="text-2xl font-bold">HMS</h1>
-        <p className="text-blue-300 text-sm">Hospital Management</p>
+    // 1. Added 'sticky top-0 h-screen' to pin the sidebar to the viewport
+    // 2. Used 'flex-col' to create the vertical stack
+    <div className="sticky top-0 h-screen bg-blue-800 text-white flex flex-col w-64">
+      
+      {/* Header & User Info (Fixed at top) */}
+      <div className="flex-shrink-0">
+        <div className="px-6 py-5 border-b border-blue-700">
+          <h1 className="text-2xl font-bold">HMS</h1>
+          <p className="text-blue-300 text-sm">Hospital Management</p>
+        </div>
+        <div className="px-6 py-4 border-b border-blue-700">
+          <p className="text-white font-medium">{user?.fullName}</p>
+          <p className="text-blue-300 text-xs capitalize">{user?.role}</p>
+        </div>
       </div>
 
-      {/* User Info */}
-      <div className="px-6 py-4 border-b border-blue-700">
-        <p className="text-white font-medium">{user?.fullName}</p>
-        <p className="text-blue-300 text-xs capitalize">{user?.role}</p>
-      </div>
-
-      {/* Nav Links */}
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      {/* Nav Links: 'flex-1' and 'overflow-y-auto' 
+        This section will grow to fill available space and scroll if content exceeds it 
+      */}
+      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {links.map((link) => (
           <NavLink
             key={link.path}
@@ -96,8 +102,8 @@ function Sidebar() {
         ))}
       </nav>
 
-      {/* Logout */}
-      <div className="px-4 py-4 border-t border-blue-700">
+      {/* Logout (Pinned to the bottom via flex-col order) */}
+      <div className="px-4 py-4 border-t border-blue-700 flex-shrink-0">
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-600 transition"

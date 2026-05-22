@@ -4,15 +4,22 @@ import { Outlet } from "react-router-dom";
 
 function Layout() {
   return (
-    <div className="flex h-screen overflow-hidden">
-      <div className="no-print">
+    // 1. Removed h-screen and overflow-hidden to allow the entire page to scroll naturally
+    <div className="flex min-h-screen"> 
+      
+      {/* Sidebar container will now scroll with the page */}
+      <div className="no-print w-64">
         <Sidebar />
       </div>
-      <div className="flex-1 flex flex-col overflow-hidden">
+
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col">
         <div className="no-print">
           <Navbar />
         </div>
-        <main className="p-6 bg-gray-100 flex-1 overflow-y-auto">
+        
+        {/* 2. Removed overflow-y-auto so the main content scrolls with the page */}
+        <main className="p-6 bg-gray-100 flex-1"> 
           <Outlet />
         </main>
       </div>
