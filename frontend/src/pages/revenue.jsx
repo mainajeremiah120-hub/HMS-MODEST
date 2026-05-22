@@ -120,13 +120,23 @@ function Revenue() {
                 ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg"
                 : "text-gray-600 hover:text-gray-900"
             }`}
-          >
-             Monthly
+               >
+             Daily
           </button>
           <button
             onClick={() => setActiveTab("yearly")}
             className={`px-6 py-3 font-bold transition ${
-              activeTab === "yearly"
+              activeTab === "daily"
+                ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+             Monthly
+          </button>
+          <button
+            onClick={() => setActiveTab("monthly")}
+            className={`px-6 py-3 font-bold transition ${
+              activeTab === "monthly"
                 ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg"
                 : "text-gray-600 hover:text-gray-900"
             }`}
@@ -134,9 +144,9 @@ function Revenue() {
             Yearly
           </button>
           <button
-            onClick={() => setActiveTab("payment")}
+            onClick={() => setActiveTab("yearly")}
             className={`px-6 py-3 font-bold transition ${
-              activeTab === "payment"
+              activeTab === "yearly"
                 ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg"
                 : "text-gray-600 hover:text-gray-900"
             }`}
