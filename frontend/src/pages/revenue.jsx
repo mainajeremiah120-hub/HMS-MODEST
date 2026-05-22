@@ -59,7 +59,7 @@ function Revenue() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            💰 Revenue Dashboard
+             Revenue Dashboard
           </h1>
           <p className="text-gray-600">Comprehensive hospital revenue analytics</p>
         </div>
@@ -111,7 +111,7 @@ function Revenue() {
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            📊 Overview
+            Overview
           </button>
           <button
             onClick={() => setActiveTab("monthly")}
@@ -121,7 +121,7 @@ function Revenue() {
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            📈 Monthly
+             Monthly
           </button>
           <button
             onClick={() => setActiveTab("yearly")}
@@ -131,7 +131,7 @@ function Revenue() {
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            📉 Yearly
+            Yearly
           </button>
           <button
             onClick={() => setActiveTab("payment")}
@@ -141,7 +141,7 @@ function Revenue() {
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            💳 Payment
+             Payment
           </button>
         </div>
 
