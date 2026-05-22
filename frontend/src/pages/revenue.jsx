@@ -30,7 +30,7 @@ function Revenue() {
         API.get("/revenue/yearly")
       ]);
 
-      setSummary(summaryRes.data);
+      setSummary([...summaryRes.data].reverse());
       setDepartment(deptRes.data);
       setPaymentMethod(paymentRes.data);
       setMonthly(monthlyRes.data);
@@ -274,6 +274,8 @@ function Revenue() {
                 <Legend />
                 <Bar dataKey="totalRevenue" fill="#0066CC" name="Total Revenue" />
                 <Bar dataKey="totalConsultation" fill="#22C55E" name="Consultation" />
+                <Bar dataKey="totalLab" fill="#FF6B6B" name="Lab" />
+                <Bar dataKey="totalPharmacy" fill="#FFD700" name="Pharmacy" />
               </BarChart>
             </ResponsiveContainer>
           </div>
