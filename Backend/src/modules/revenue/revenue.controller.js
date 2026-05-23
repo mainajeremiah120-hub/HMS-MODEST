@@ -79,6 +79,61 @@ export const getPaymentMethodRevenue = async (req, res) => {
   }
 };
 
+export const getDailySummary = async (req, res) => {
+  try {
+    const stats = await Billing.aggregate([
+      { $match: { paymentStatus: "Paid" } },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$updatedAt" },
+            month: { $month: "$updatedAt" },
+            day: { $dayOfMonth: "$updatedAt" }
+          },
+          // Ensure these fields exist and are being summed
+          totalDailyRevenue: { $sum: "$totalAmount" },
+          consultationRevenue: { $sum: "$consultation.fee" },
+          labRevenue: { $sum: { $sum: "$labCharges.cost" } },
+          pharmacyRevenue: { $sum: { $sum: "$pharmacyCharges.cost" } },
+          transactionCount: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": -1, "_id.month": -1, "_id.day": -1 } },
+      { $limit: 30 }
+    ]);
+    res.status(200).json(stats);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getWeeklyRevenue = async (req, res) => {
+  try {
+    const stats = await Billing.aggregate([
+      { $match: { paymentStatus: "Paid" } },
+      {
+        $group: {
+          _id: {
+            year: { $isoWeekYear: "$updatedAt" },
+            week: { $isoWeek: "$updatedAt" }
+          },
+          totalRevenue: { $sum: "$totalAmount" },
+          totalConsultation: { $sum: "$consultation.fee" },
+          totalLab: { $sum: { $sum: "$labCharges.cost" } },
+          totalPharmacy: { $sum: { $sum: "$pharmacyCharges.cost" } },
+          transactionCount: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": -1, "_id.week": -1 } },
+      { $limit: 12 } // Optional: Get the last 12 weeks of data
+    ]);
+
+    res.status(200).json(stats);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch weekly revenue", error: error.message });
+  }
+};
+
 export const getMonthlyRevenue = async (req, res) => {
   try {
     const stats = await Billing.aggregate([

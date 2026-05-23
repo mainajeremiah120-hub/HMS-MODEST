@@ -7,6 +7,8 @@ function Revenue() {
   const [department, setDepartment] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState([]);
   const [monthly, setMonthly] = useState([]);
+  const [daily, setDaily] = useState([]);
+  const [weekly, setWeekly] = useState([]);
   const [yearly, setYearly] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -22,21 +24,27 @@ function Revenue() {
     setLoading(true);
     setError("");
     try {
-      const [summaryRes, deptRes, paymentRes, monthlyRes, yearlyRes] = await Promise.all([
+      const results = await Promise.allSettled([
         API.get("/revenue/summary"),
         API.get("/revenue/department"),
         API.get("/revenue/payment-method"),
+        API.get("/revenue/daily-summary"),
+        API.get("/revenue/weekly"),
         API.get("/revenue/monthly"),
         API.get("/revenue/yearly")
       ]);
 
-      setSummary([...summaryRes.data].reverse());
-      setDepartment(deptRes.data);
-      setPaymentMethod(paymentRes.data);
-      setMonthly(monthlyRes.data);
-      setYearly(yearlyRes.data);
+      // Safely update state only if the request succeeded
+      if (results[0].status === "fulfilled") setSummary(results[0].value.data.reverse());
+      if (results[1].status === "fulfilled") setDepartment(results[1].value.data);
+      if (results[2].status === "fulfilled") setPaymentMethod(results[2].value.data);
+      if (results[3].status === "fulfilled") setDaily(results[3].value.data);
+      if (results[4].status === "fulfilled") setWeekly(results[4].value.data);
+      if (results[5].status === "fulfilled") setMonthly(results[5].value.data);
+      if (results[6].status === "fulfilled") setYearly(results[6].value.data);
+
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to fetch revenue data");
+      setError("Error communicating with the server.");
     } finally {
       setLoading(false);
     }
@@ -59,7 +67,7 @@ function Revenue() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-             Revenue Dashboard
+            Revenue Dashboard
           </h1>
           <p className="text-gray-600">Comprehensive hospital revenue analytics</p>
         </div>
@@ -101,59 +109,133 @@ function Revenue() {
           </div>
         )}
 
-        {/* Tabs */}
+        {/* TAB BUTTONS */}
         <div className="flex gap-2 mb-6 border-b border-gray-200">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`px-6 py-3 font-bold transition ${
-              activeTab === "overview"
-                ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
+            className={`px-6 py-3 font-bold transition ${activeTab === "overview" ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg" : "text-gray-600 hover:text-gray-900"}`}
           >
             Overview
           </button>
+
           <button
-            onClick={() => setActiveTab("monthly")}
-            className={`px-6 py-3 font-bold transition ${
-              activeTab === "monthly"
-                ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-               >
-             Daily
+            onClick={() => setActiveTab("daily")} // Use lowercase "daily"
+            className={`px-6 py-3 font-bold transition ${activeTab === "daily" ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg" : "text-gray-600 hover:text-gray-900"}`}
+          >
+            Daily
           </button>
+
+          <button
+            onClick={() => setActiveTab("weekly")} // Use lowercase "weekly"
+            className={`px-6 py-3 font-bold transition ${activeTab === "weekly" ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg" : "text-gray-600 hover:text-gray-900"}`}
+          >
+            Weekly
+          </button>
+
+          <button
+            onClick={() => setActiveTab("monthly")} // Use lowercase "monthly"
+            className={`px-6 py-3 font-bold transition ${activeTab === "monthly" ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg" : "text-gray-600 hover:text-gray-900"}`}
+          >
+            Monthly
+          </button>
+
           <button
             onClick={() => setActiveTab("yearly")}
-            className={`px-6 py-3 font-bold transition ${
-              activeTab === "daily"
-                ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-             Monthly
-          </button>
-          <button
-            onClick={() => setActiveTab("monthly")}
-            className={`px-6 py-3 font-bold transition ${
-              activeTab === "monthly"
-                ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
+            className={`px-6 py-3 font-bold transition ${activeTab === "yearly" ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg" : "text-gray-600 hover:text-gray-900"}`}
           >
             Yearly
           </button>
+
           <button
-            onClick={() => setActiveTab("yearly")}
-            className={`px-6 py-3 font-bold transition ${
-              activeTab === "yearly"
-                ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
+            onClick={() => setActiveTab("payment")} // Fixed: Set to "payment"
+            className={`px-6 py-3 font-bold transition ${activeTab === "payment" ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg" : "text-gray-600 hover:text-gray-900"}`}
           >
-             Payment
+            Payment
           </button>
         </div>
+
+        {/* CONDITIONAL RENDERING BLOCKS */}
+        {activeTab === "daily" && (
+  <div className="bg-white rounded-2xl p-6 shadow-lg">
+    <h2 className="text-2xl font-bold text-gray-800 mb-6">Daily Revenue Trend</h2>
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart data={daily}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey={(item) => `${item._id.day}/${item._id.month}`} />
+        <YAxis />
+        <Tooltip formatter={(value) => `KSh ${value?.toLocaleString()}`} />
+        <Legend />
+        
+        {/* Add these four lines to show all bars */}
+        <Bar dataKey="totalDailyRevenue" fill="#0066CC" name="Total Revenue" />
+        <Bar dataKey="consultationRevenue" fill="#22C55E" name="Consultation" />
+        <Bar dataKey="labRevenue" fill="#FF6B6B" name="Lab" />
+        <Bar dataKey="pharmacyRevenue" fill="#FFD700" name="Pharmacy" />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+)}
+
+        {activeTab === "weekly" && (
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Weekly Revenue Trend</h2>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={weekly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                {/* Adjust XAxis dataKey to match your weekly database field (e.g., week number or start date) */}
+                <XAxis dataKey={(item) => `Wk ${item._id.week}`} />
+                <YAxis />
+                <Tooltip formatter={(value) => `KSh ${value?.toLocaleString()}`} />
+                <Legend />
+                <Bar dataKey="totalRevenue" fill="#22C55E" name="Total Revenue" />
+                <Bar dataKey="totalConsultation" fill="#0066CC" name="Consultation" />
+                <Bar dataKey="totalLab" fill="#FF6B6B" name="Lab" />
+                <Bar dataKey="totalPharmacy" fill="#FFD700" name="Pharmacy" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* 3. MONTHLY TAB CONTENT */}
+        {activeTab === "monthly" && (
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Monthly Revenue Trend</h2>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={monthly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey={(item) => `${item._id.month}/${item._id.year}`} />
+                <YAxis />
+                <Tooltip formatter={(value) => `KSh ${value?.toLocaleString()}`} />
+                <Legend />
+                <Bar dataKey="totalRevenue" fill="#0066CC" name="Total Revenue" />
+                <Bar dataKey="totalConsultation" fill="#22C55E" name="Consultation" />
+                <Bar dataKey="totalLab" fill="#FF6B6B" name="Lab" />
+                <Bar dataKey="totalPharmacy" fill="#FFD700" name="Pharmacy" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* 4. YEARLY TAB CONTENT */}
+        {activeTab === "yearly" && (
+          <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Yearly Revenue Summary</h2>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={yearly}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey={(item) => item._id} />
+                <YAxis />
+                <Tooltip formatter={(value) => `KSh ${value?.toLocaleString()}`} />
+                <Legend />
+                <Bar dataKey="totalRevenue" fill="#0066CC" name="Total Revenue" />
+                <Bar dataKey="totalConsultation" fill="#22C55E" name="Consultation" />
+                <Bar dataKey="totalLab" fill="#FF6B6B" name="Lab" />
+                <Bar dataKey="totalPharmacy" fill="#FFD700" name="Pharmacy" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
 
         {/* Overview Tab */}
         {activeTab === "overview" && (
@@ -167,10 +249,10 @@ function Revenue() {
                   <XAxis dataKey={(item) => `${item._id.day}/${item._id.month}`} />
                   <YAxis />
                   <Tooltip />
-                  <Line 
-                    type="monotone" 
-                    dataKey="totalDailyRevenue" 
-                    stroke="#0066CC" 
+                  <Line
+                    type="monotone"
+                    dataKey="totalDailyRevenue"
+                    stroke="#0066CC"
                     strokeWidth={2}
                     dot={{ fill: "#0066CC", r: 4 }}
                   />
