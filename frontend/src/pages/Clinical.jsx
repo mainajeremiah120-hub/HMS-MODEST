@@ -152,6 +152,12 @@ function ConsultationTab({ onConsultationCreated }) {
   const [formData, setFormData] = useState({
     patient: "",
     symptoms: "",
+    chiefComplaint: "",
+    historyOfPresentingIllness: "",
+    reviewOfOtherSystems: "",
+    surgicalHistory: "",
+    familyHistory: "",
+    systemicExamination: "",
     diagnosis: "",
     icd10Code: "",
     icd10Description: "",
@@ -237,8 +243,20 @@ function ConsultationTab({ onConsultationCreated }) {
 
       setSuccess("Consultation created successfully!");
       setFormData({
-        patient: "", symptoms: "", diagnosis: "", icd10Code: "",
-        icd10Description: "", notes: "", followUpDate: "", consultationFee: 500,
+        patient: "", 
+        symptoms: "", 
+        chiefComplaint: "",
+        historyOfPresentingIllness: "",
+        reviewOfOtherSystems: "",
+        surgicalHistory: "",
+        familyHistory: "",
+        systemicExamination: "",
+        diagnosis: "", 
+        icd10Code: "",
+        icd10Description: "", 
+        notes: "", 
+        followUpDate: "", 
+        consultationFee: 500,
         vitals: { bloodPressure: "", temperature: "", pulse: "", weight: "", height: "", oxygenSaturation: "", respiratoryRate: "" },
       });
       setAiSuggestion(null);
@@ -282,6 +300,36 @@ function ConsultationTab({ onConsultationCreated }) {
                 <input type="text" name={field.name} value={formData.vitals[field.name]} onChange={handleVitalChange} placeholder={field.placeholder} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow p-6">
+          <h3 className="font-semibold text-gray-700 mb-4">Clinical Assessment</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Chief Complaint (C/O)</label>
+              <textarea name="chiefComplaint" value={formData.chiefComplaint} onChange={handleChange} rows={2} placeholder="Patient's main complaint..." className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">History of Presenting Illness (HPI)</label>
+              <textarea name="historyOfPresentingIllness" value={formData.historyOfPresentingIllness} onChange={handleChange} rows={2} placeholder="Detailed history of current illness..." className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Review of Other Systems (ROS)</label>
+              <textarea name="reviewOfOtherSystems" value={formData.reviewOfOtherSystems} onChange={handleChange} rows={2} placeholder="Cardiovascular, respiratory, GI, neuro systems review..." className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Surgical History</label>
+              <textarea name="surgicalHistory" value={formData.surgicalHistory} onChange={handleChange} rows={2} placeholder="Previous surgeries, dates, complications..." className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Family History</label>
+              <textarea name="familyHistory" value={formData.familyHistory} onChange={handleChange} rows={2} placeholder="Hereditary conditions, genetic disorders..." className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Systemic Examination</label>
+              <textarea name="systemicExamination" value={formData.systemicExamination} onChange={handleChange} rows={2} placeholder="Physical examination findings..." className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            </div>
           </div>
         </div>
 
