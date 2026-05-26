@@ -5,6 +5,8 @@ const baseURL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/api` 
   : 'http://localhost:5000/api';
 
+console.log("API Base URL configured as:", baseURL);
+
 const API = axios.create({
   baseURL: baseURL,
 })
