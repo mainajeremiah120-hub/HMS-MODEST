@@ -17,6 +17,12 @@ import revenueRoutes from "./src/modules/revenue/revenue.routes.js";
 
 dotenv.config({ path: "./.env" });
 
+// Ensure JWT_SECRET is set to prevent "secretOrPrivateKey must have a value" error
+if (!process.env.JWT_SECRET) {
+  console.warn("⚠️ WARNING: JWT_SECRET is not defined in environment variables! Using a temporary fallback key.");
+  process.env.JWT_SECRET = "hms_modest_temporary_fallback_secret_key_1234567890";
+}
+
 connectDB();
 appointmentExpiryJob();
 appointmentReminderJob();
