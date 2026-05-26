@@ -24,7 +24,6 @@ appointmentReminderJob();
 
 const app = express();
 
-const cors = require('cors');
 app.use(cors({
   origin: ["http://localhost:5173", "https://hms-modest-1.onrender.com"],
   credentials: true
