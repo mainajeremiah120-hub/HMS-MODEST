@@ -7,7 +7,7 @@ import Patients from './pages/Patients'
 import Appointments from './pages/Appointments'
 import Reception from './pages/Reception'
 import Clinical from './pages/Clinical'
-import Lab from './pages/Lab'
+import Lab from './pages/lab'
 import Pharmacy from './pages/Pharmacy'
 import Billing from "./pages/Billing";
 import Revenue from "./pages/revenue";
