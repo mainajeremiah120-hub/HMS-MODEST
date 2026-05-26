@@ -55,6 +55,31 @@ const consultationSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+        // Clinical Assessment Fields
+    chiefComplaint: {
+      type: String,
+      default: null,
+    },
+    historyOfPresentingIllness: {
+      type: String,
+      default: null,
+    },
+    reviewOfOtherSystems: {
+      type: String,
+      default: null,
+    },
+    surgicalHistory: {
+      type: String,
+      default: null,
+    },
+    familyHistory: {
+      type: String,
+      default: null,
+    },
+    systemicExamination: {
+      type: String,
+      default: null,
+    },
     followUpDate: {
       type: Date,
       default: null,
